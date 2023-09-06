@@ -1,16 +1,15 @@
 # Project Information
-site_name: TOOL_NAME
-site_author: CCR Collaborative Bioinformatics Resource
+site_name: MeltzerLab_Nextflow_pipeline
+site_author: CCR Genetics branch
 site_description: >-
   insert a one-line description of TOOL_NAME here
 # Repository
-repo_name: CCBR/TOOL_NAME
-repo_url: https://github.com/CCBR/TOOL_NAME
-edit_uri: https://github.com/CCBR/TOOL_NAME/edit/main/docs/
+repo_name: CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline
+repo_url: https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline
+edit_uri: https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline/edit/main/docs/
 
 # Copyright
-copyright: Copyright &copy; 2023 CCR Collaborative Bioinformatics Resource
-
+copyright: Copyright &copy; 2023 CCR Genetics Branch
 # Configuration
 theme:
   name: material
@@ -46,7 +45,7 @@ extra:
     - icon: fontawesome/solid/users
       link: http://bioinformatics.cancer.gov
     - icon: fontawesome/brands/github
-      link: https://github.com/CCBR
+      link: https://github.com/CCRGeneticsBranch
     - icon: fontawesome/brands/docker
       link: https://hub.docker.com/orgs/nciccbr/repositories
   version:
