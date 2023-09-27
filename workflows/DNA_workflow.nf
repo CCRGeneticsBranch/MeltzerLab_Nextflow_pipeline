@@ -31,6 +31,26 @@ BWA_mem2(Fastp.out
          .combine(aligner)
 )
 
+GATK_BaseRecalibrator(
+     BWA_mem2.out
+     .combine(genome)
+     .combine(genome_fai)
+     .combine(genome_dict)
+     .combine(phase1_1000g)
+     .combine(phase1_1000g_idx)
+     .combine(Mills_and_1000g)
+     .combine(Mills_and_1000g_idx)
+     .combine(aligner)
+)
+Applybqsr_input = BWA_mem2.out.join(GATK_BaseRecalibrator.out,by:[0])
+GATK_ApplyBQSR(
+     Applybqsr_input
+     .combine(genome)
+     .combine(genome_fai)
+     .combine(genome_dict)
+     .combine(aligner)
+)
+
 
 
 }
