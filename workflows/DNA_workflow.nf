@@ -56,5 +56,17 @@ Flagstat(
      .combine(aligner)
 )
 
+Idxstats(
+     GATK_ApplyBQSR.out
+     .combine(aligner)
+)
+
+CollectMultipleMetrics(
+     GATK_ApplyBQSR.out
+     .combine(genome)
+     .combine(genome_fai)
+     .combine(genome_dict)
+     .combine(aligner)
+)
 
 }
