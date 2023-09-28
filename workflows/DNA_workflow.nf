@@ -51,6 +51,10 @@ GATK_ApplyBQSR(
      .combine(aligner)
 )
 
+Flagstat(
+     GATK_ApplyBQSR.out
+     .combine(aligner)
+)
 
 
 }
