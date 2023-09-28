@@ -16,3 +16,21 @@ process FASTQC {
         -o .
     """
 }
+
+process Flagstat {
+    tag "$meta.lib"
+
+    input:
+    tuple val(meta),path(bam),path(bai),val(aligner)
+
+    output:
+    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.flagstat.txt")
+
+    script:
+    """
+    samtools flagstat ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.flagstat.txt
+
+    """
+
+}
+
