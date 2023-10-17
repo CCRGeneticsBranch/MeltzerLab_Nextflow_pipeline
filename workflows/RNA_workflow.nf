@@ -1,7 +1,8 @@
 
 include {Fastp} from '../modules/local/Fastp.nf'
 include {Star} from '../modules/local/star.nf'
-
+include {Picard_AddReadgroups
+        Picard_MarkDuplicates} from '../modules/local/picard.nf'
 
 
 workflow RNA_workflow {
@@ -22,6 +23,9 @@ Star(Fastp.out
     .combine(gtf)
     .combine(aligner)
 )
+
+Picard_AddReadgroups(Star.out.genome_bam.combine(Star.out.genome_bai,by:[0]))
+Picard_MarkDuplicates(Picard_AddReadgroups.out)
 
 
 
