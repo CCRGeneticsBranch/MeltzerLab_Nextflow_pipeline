@@ -1,19 +1,29 @@
 
-process FASTQC {
-    tag { sample_id }
-    publishDir "${params.resultsdir}/${meta.id}/qc", mode: 'copy'
+process Fastqc {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/${meta.id}/qc/", mode: 'copy',pattern: "fastqc"
 
     input:
-        tuple val(sample_id), path(fastq)
+    tuple val(meta), path(trim), path(r1fq), path(r2fq)
+
     output:
-        tuple val(sample_id), path("${sample_id}*.html")
+    tuple val(meta), path("fastqc") , emit: fastqc_results
+    path "versions.yml"             , emit: versions
+
 
     script:
+    def args = task.ext.args   ?: ''
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
     """
-    fastqc \
-        $fastq \
-        -t $task.cpus \
-        -o .
+    if [ ! -d fastqc ];then mkdir -p fastqc;fi
+    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o fastqc
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        Fastqc: \$(fastqc --version|awk '{print \$2}')
+    END_VERSIONS
     """
 }
 
@@ -37,7 +47,7 @@ process Flagstat {
 process Idxstats {
     tag "$meta.lib"
     publishDir "${params.resultsdir}/${meta.id}/qc", mode: 'copy'
-    
+
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
 
@@ -85,7 +95,7 @@ process CollectMultipleMetrics {
     PROGRAM=CollectBaseDistributionByCycle \
     PROGRAM=CollectGcBiasMetrics  \
     PROGRAM=CollectSequencingArtifactMetrics \
-    PROGRAM=CollectQualityYieldMetrics  
+    PROGRAM=CollectQualityYieldMetrics
 
     """
 

@@ -2,9 +2,10 @@ include {Fastp} from '../modules/local/Fastp.nf'
 include {BWA_mem2} from '../modules/local/bwa.nf'
 include {GATK_BaseRecalibrator} from '../modules/local/gatk.nf'
 include {GATK_ApplyBQSR} from '../modules/local/gatk.nf'
-include {Flagstat} from '../modules/local/qc.nf'
-include {Idxstats} from '../modules/local/qc.nf'
-include {CollectMultipleMetrics} from '../modules/local/qc.nf'
+include {Flagstat
+        Idxstats
+        CollectMultipleMetrics
+        Fastqc} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
 
@@ -19,12 +20,16 @@ phase1_1000g_idx            = Channel.of(file(params.phase1_1000g_idx, checkIfEx
 Mills_and_1000g_idx         = Channel.of(file(params.Mills_and_1000g_idx, checkIfExists:true))
 
 
-take: 
+take:
      samples_ch
 
 main:
 
 Fastp(samples_ch)
+
+fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
+
+Fastqc(fastqc_input)
 
 BWA_mem2(Fastp.out
          .combine(bwa_genomeindex)
