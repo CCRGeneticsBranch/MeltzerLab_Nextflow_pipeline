@@ -12,10 +12,10 @@ process Fastp {
     mkdir Trimmed_Reads
     fastp --in1 ${r1fq} \
           --in2 ${r2fq}  \
-          --out1 Trimmed_Reads/${r1fq} \
-          --out2 Trimmed_Reads/${r2fq} \
+          --out1 Trimmed_Reads/trim_${r1fq} \
+          --out2 Trimmed_Reads/trim_${r2fq} \
           --thread $task.cpus \
-          --html Trimmed_Reads/${meta.lib}.${meta.id} 
-          
+          --html Trimmed_Reads/${meta.lib}.${meta.id}
+
     """
 }
