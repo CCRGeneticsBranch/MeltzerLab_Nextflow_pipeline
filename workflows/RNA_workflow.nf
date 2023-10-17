@@ -30,6 +30,11 @@ take:
 
 main:
 
+Fastp(samples_ch)
+
+fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
+
+Fastqc(fastqc_input)
 
 Star(Fastp.out
     .combine(star_genomeIndex)
