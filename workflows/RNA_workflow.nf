@@ -7,6 +7,11 @@ include {GATK_SplitNCigarReads
         GATK_BaseRecalibrator
         GATK_ApplyBQSR} from '../modules/local/gatk.nf'
 
+include {Flagstat
+        Idxstats
+        CollectMultipleMetrics
+        Fastqc} from '../modules/local/qc.nf'
+
 workflow RNA_workflow {
 
 star_genomeIndex        = Channel.of(file(params.star_genome_index, checkIfExists:true))
@@ -25,7 +30,6 @@ take:
 
 main:
 
-Fastp(samples_ch)
 
 Star(Fastp.out
     .combine(star_genomeIndex)
@@ -54,10 +58,29 @@ GATK_BaseRecalibrator(
      .combine(aligner)
 )
 
+
 Applybqsr_input = GATK_SplitNCigarReads.out.join(GATK_BaseRecalibrator.out,by:[0])
 
 GATK_ApplyBQSR(
      Applybqsr_input
+     .combine(genome)
+     .combine(genome_fai)
+     .combine(genome_dict)
+     .combine(aligner)
+)
+
+Flagstat(
+     GATK_ApplyBQSR.out
+     .combine(aligner)
+)
+
+Idxstats(
+     GATK_ApplyBQSR.out
+     .combine(aligner)
+)
+
+CollectMultipleMetrics(
+     GATK_ApplyBQSR.out
      .combine(genome)
      .combine(genome_fai)
      .combine(genome_dict)
