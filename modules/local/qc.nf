@@ -98,6 +98,36 @@ process CollectMultipleMetrics {
     PROGRAM=CollectQualityYieldMetrics
 
     """
+}
 
+process RNAseQC {
+
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}", mode: 'copy'
+
+    input:
+    tuple val(meta),
+        path(bam),
+        path(index),
+        path(genome),
+        path(genome_fai),
+        path(genome_dict),
+        path(rRNA_interval),
+        path(transcript_gtf)
+
+    output:
+    tuple val(meta),
+        path("rnaseqc/report.html")
+
+    stub:
+     """
+     touch "report.html"
+     """
+
+    script:
+     """
+     java -jar \$RNASEQCJAR -r ${genome} -rRNA ${rRNA_interval} -o rnaseqc -s "${meta.lib}|${bam}|${meta.lib}" -t ${transcript_gtf}
+
+     """
 
 }
