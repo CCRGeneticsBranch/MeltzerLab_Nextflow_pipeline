@@ -10,7 +10,8 @@ include {GATK_SplitNCigarReads
 include {Flagstat
         Idxstats
         CollectMultipleMetrics
-        Fastqc} from '../modules/local/qc.nf'
+        Fastqc
+        RNAseQC} from '../modules/local/qc.nf'
 
 workflow RNA_workflow {
 
@@ -24,6 +25,8 @@ phase1_1000g            = Channel.of(file(params.phase1_1000g, checkIfExists:tru
 Mills_and_1000g         = Channel.of(file(params.Mills_and_1000g, checkIfExists:true))
 phase1_1000g_idx            = Channel.of(file(params.phase1_1000g_idx, checkIfExists:true))
 Mills_and_1000g_idx         = Channel.of(file(params.Mills_and_1000g_idx, checkIfExists:true))
+rRNA_interval               = Channel.of(file(params.rRNA_interval, checkIfExists:true))
+transcript_gtf              = Channel.of(file(params.transcript_gtf, checkIfExists:true))
 
 take:
      samples_ch
@@ -90,6 +93,14 @@ CollectMultipleMetrics(
      .combine(genome_fai)
      .combine(genome_dict)
      .combine(aligner)
+)
+RNAseQC(
+     Picard_MarkDuplicates.out
+     .combine(genome)
+     .combine(genome_fai)
+     .combine(genome_dict)
+     .combine(rRNA_interval)
+     .combine(transcript_gtf)
 )
 
 }
