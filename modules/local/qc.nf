@@ -131,3 +131,38 @@ process RNAseQC {
      """
 
 }
+
+
+process Kraken2 {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+
+    input:
+    tuple val(meta), path(r1fq), path(r2fq),path(kraken2_db)
+
+    output:
+    tuple val(meta),path("${meta.lib}.kraken2_output.txt"), emit: kraken_output
+    tuple val(meta),path("${meta.lib}_kraken2.report.txt"), emit : kraken_report
+    path "versions.yml"             , emit: versions
+
+    stub:
+    """
+    touch "${meta.lib}.kraken_output"
+    touch "${meta.lib}.report"
+
+    """
+
+
+    script:
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    kraken2 --db ${kraken2_db} --gzip-compressed --threads ${task.cpus} --output ${prefix}.kraken2_output.txt --paired ${r1fq} ${r2fq} --use-names --report ${prefix}_kraken2.report.txt
+
+    cat <<-END_VERSIONS > versions.yml
+    "${task.process}":
+        Kraken: \$(kraken2 --version|head -1|awk '{print \$3}')
+    END_VERSIONS
+    """
+}
