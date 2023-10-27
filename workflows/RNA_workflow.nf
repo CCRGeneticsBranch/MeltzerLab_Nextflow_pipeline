@@ -11,7 +11,8 @@ include {Flagstat
         Idxstats
         CollectMultipleMetrics
         Fastqc
-        RNAseQC} from '../modules/local/qc.nf'
+        RNAseQC
+        Kraken2} from '../modules/local/qc.nf'
 
 workflow RNA_workflow {
 
@@ -32,6 +33,12 @@ take:
      samples_ch
 
 main:
+
+kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
+
+Kraken2(samples_ch
+     .combine(kraken2_db))
+
 
 Fastp(samples_ch)
 
