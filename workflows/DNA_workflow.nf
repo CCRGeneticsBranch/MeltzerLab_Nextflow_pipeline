@@ -6,7 +6,8 @@ include {Flagstat
         Idxstats
         CollectMultipleMetrics
         Fastqc
-        Kraken2} from '../modules/local/qc.nf'
+        Kraken2
+        Krona} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
 
@@ -31,6 +32,7 @@ kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
 Kraken2(samples_ch
      .combine(kraken2_db))
 
+Krona(Kraken2.out.kraken_output)
 
 Fastp(samples_ch)
 

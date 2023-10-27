@@ -166,3 +166,32 @@ process Kraken2 {
     END_VERSIONS
     """
 }
+
+
+process Krona {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+
+    input:
+    tuple val(meta), path(kraken2_output)
+
+    output:
+    tuple val(meta),path("${meta.lib}.KronaReport.html"), emit: krona_output
+
+
+    stub:
+    """
+    touch "${meta.lib}.KronaReport.html"
+
+    """
+
+
+    script:
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    ktImportTaxonomy -q 2 -t 3 ${kraken2_output} -o ${prefix}.KronaReport.html
+
+    """
+}
