@@ -8,7 +8,7 @@ process Fastqc {
     tuple val(meta), path(trim), path(r1fq), path(r2fq)
 
     output:
-    tuple val(meta), path("fastqc") , emit: fastqc_results
+    tuple val(meta), path("fastqc_${meta.lib}") , emit: fastqc_results
     path "versions.yml"             , emit: versions
 
 
@@ -17,8 +17,8 @@ process Fastqc {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    if [ ! -d fastqc ];then mkdir -p fastqc;fi
-    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o fastqc
+    if [ ! -d fastqc_${meta.lib} ];then mkdir -p fastqc_${meta.lib};fi
+    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o fastqc_${meta.lib}
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
