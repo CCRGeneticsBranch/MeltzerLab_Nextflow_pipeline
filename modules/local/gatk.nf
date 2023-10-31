@@ -1,10 +1,37 @@
+
+process GATK_SplitNCigarReads {
+        tag "$meta.lib"
+
+        input:
+        tuple val(meta),
+        path(bam),
+        path(index),
+        path(genome),
+        path(genome_fai),
+        path(genome_dict)
+
+        output:
+        tuple val(meta),
+        path("${meta.lib}.split.bam"),
+        path("${meta.lib}.split.bai")
+
+
+        script:
+
+        """
+        java -Xmx70g -jar \$GATK_JAR SplitNCigarReads -R $genome -I $bam -O ${meta.lib}.split.bam
+
+        """
+}
+
+
 process GATK_BaseRecalibrator {
     tag "$meta.lib"
     //publishDir "${params.resultsdir}/${meta.id}/bam", mode: 'copy'
-    
+
     input:
       tuple val(meta),
-      path(bam), 
+      path(bam),
       path(bai),
       path(genome),
       path(genome_fai),
@@ -16,7 +43,7 @@ process GATK_BaseRecalibrator {
       val(aligner)
 
     output:
-      tuple val(meta), 
+      tuple val(meta),
       path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt")
 
 
@@ -27,7 +54,7 @@ process GATK_BaseRecalibrator {
       --known-sites  ${Mills_and_1000g} \
       --known-sites  ${phase1_1000g} \
       -I ${bam} \
-      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt 
+      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt
 
     """
 
@@ -36,7 +63,7 @@ process GATK_BaseRecalibrator {
 process GATK_ApplyBQSR {
     tag "$meta.lib"
     publishDir "${params.resultsdir}/${meta.id}/bam", mode: 'copy'
-    
+
     input:
       tuple val(meta),
       path(bam),
@@ -48,7 +75,7 @@ process GATK_ApplyBQSR {
       val(aligner)
 
     output:
-      tuple val(meta), 
+      tuple val(meta),
       path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bam"),
       path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bai")
 
@@ -59,7 +86,7 @@ process GATK_ApplyBQSR {
       -R ${genome} \
       -I ${bam} \
       --bqsr-recal-file ${recalibration} \
-      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bam 
+      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bam
 
     """
 
