@@ -13,7 +13,8 @@ include {Flagstat
         Fastqc
         RNAseQC
         Kraken2
-        Krona} from '../modules/local/qc.nf'
+        Krona
+        Multiqc} from '../modules/local/qc.nf'
 
 workflow RNA_workflow {
 
@@ -57,8 +58,10 @@ Star(Fastp.out
 
 Picard_AddReadgroups(Star.out.genome_bam.combine(Star.out.genome_bai,by:[0]))
 Picard_MarkDuplicates(Picard_AddReadgroups.out)
+picard_output = Picard_MarkDuplicates.out.bam.combine(Picard_MarkDuplicates.out.bai,by:[0])
+//picard_output.view()
 
-GATK_SplitNCigarReads(Picard_MarkDuplicates.out
+GATK_SplitNCigarReads(picard_output
      .combine(genome)
      .combine(genome_fai)
      .combine(genome_dict)
@@ -105,12 +108,30 @@ CollectMultipleMetrics(
      .combine(aligner)
 )
 RNAseQC(
-     Picard_MarkDuplicates.out
+     picard_output
      .combine(genome)
      .combine(genome_fai)
      .combine(genome_dict)
      .combine(rRNA_interval)
      .combine(transcript_gtf)
 )
+
+multiqc_input = Fastqc.out.fastqc_results
+               .join(Kraken2.out.kraken_report)
+               .join(Krona.out.krona_output)
+               .join(Flagstat.out)
+               .join(Idxstats.out)
+               .join(CollectMultipleMetrics.out)
+               .join(Picard_MarkDuplicates.out.markdup)
+
+multiqc_input_files = multiqc_input.map { tuple -> tuple.drop(1) }
+multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
+
+
+
+Multiqc(multiqc_input_files,
+           multiqc_input_meta)
+
+
 
 }
