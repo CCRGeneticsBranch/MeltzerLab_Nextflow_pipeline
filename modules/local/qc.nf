@@ -195,3 +195,32 @@ process Krona {
 
     """
 }
+
+
+process Multiqc {
+    tag "$meta.id"
+
+    publishDir "${params.resultsdir}/${meta.id}/${meta.lib}/qc", mode: 'copy',pattern: "*html"
+
+    input:
+    path(input_files)
+    val(meta)
+
+
+    output:
+    path("multiqc_report.html") , emit: multiqc_report
+    path "versions.yml"             , emit: versions
+
+    script:
+    """
+
+    echo  "${input_files.join('\n')}" > multiqc_input_files
+    multiqc --file-list multiqc_input_files -f
+
+cat <<-END_VERSIONS > versions.yml
+"${task.process}":
+    multiqc: \$(multiqc --version|sed 's/.*version //')
+END_VERSIONS
+    """
+
+}
