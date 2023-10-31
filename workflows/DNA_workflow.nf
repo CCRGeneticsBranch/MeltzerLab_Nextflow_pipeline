@@ -7,7 +7,8 @@ include {Flagstat
         CollectMultipleMetrics
         Fastqc
         Kraken2
-        Krona} from '../modules/local/qc.nf'
+        Krona
+        Multiqc} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
 
@@ -82,5 +83,18 @@ CollectMultipleMetrics(
      .combine(genome_dict)
      .combine(aligner)
 )
+
+multiqc_input = Fastqc.out.fastqc_results
+               .join(Kraken2.out.kraken_report)
+               .join(Krona.out.krona_output)
+               .join(Flagstat.out)
+               .join(Idxstats.out)
+               .join(CollectMultipleMetrics.out)
+
+multiqc_input_files = multiqc_input.map { tuple -> tuple.drop(1) }
+multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
+
+Multiqc(multiqc_input_files,
+           multiqc_input_meta)
 
 }
