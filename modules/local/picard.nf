@@ -31,9 +31,9 @@ process Picard_MarkDuplicates {
         path(index)
 
         output:
-        tuple val(meta),
-        path("${meta.lib}.dd.bam"),
-        path("${meta.lib}.dd.bam.bai")
+        tuple val(meta), path("${meta.lib}.dd.bam") , emit:bam
+        tuple val(meta), path("${meta.lib}.dd.bam.bai") , emit:bai
+        tuple val(meta), path("${meta.lib}.markdup.txt") , emit: markdup
 
 
         script:
