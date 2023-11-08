@@ -27,7 +27,6 @@ process GATK_SplitNCigarReads {
 
 process GATK_BaseRecalibrator {
     tag "$meta.lib"
-    //publishDir "${params.resultsdir}/${meta.id}/bam", mode: 'copy'
 
     input:
       tuple val(meta),
@@ -62,7 +61,7 @@ process GATK_BaseRecalibrator {
 
 process GATK_ApplyBQSR {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/bam", mode: 'copy'
+    publishDir "${params.resultsdir}/bam", mode: 'copy'
 
     input:
       tuple val(meta),
@@ -76,8 +75,8 @@ process GATK_ApplyBQSR {
 
     output:
       tuple val(meta),
-      path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bam"),
-      path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bai")
+      path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}_final.bam"),
+      path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}_final.bai")
 
 
     script:
@@ -86,7 +85,7 @@ process GATK_ApplyBQSR {
       -R ${genome} \
       -I ${bam} \
       --bqsr-recal-file ${recalibration} \
-      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.bam
+      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}_final.bam
 
     """
 
