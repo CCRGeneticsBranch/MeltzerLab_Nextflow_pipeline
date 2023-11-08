@@ -23,7 +23,7 @@ process Picard_AddReadgroups {
 
 process Picard_MarkDuplicates {
         tag "$meta.lib"
-
+        publishDir "${params.resultsdir}/${meta.id}/qc/",mode: 'copy',pattern: "*markdup.txt"
         input:
 
         tuple val(meta),

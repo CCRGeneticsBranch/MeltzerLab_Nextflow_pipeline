@@ -1,6 +1,6 @@
 process Fastp {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/QC/${meta.lib}.${meta.id}/Fastp", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/${meta.lib}.${meta.id}/Fastp", mode: 'copy'
 
     input:
         tuple val(meta), path(r1fq), path(r2fq)

@@ -2,7 +2,7 @@
 process Fastqc {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/${meta.id}/qc/", mode: 'copy',pattern: "fastqc"
+    publishDir "${params.resultsdir}/qc/", mode: 'copy',pattern: "fastqc"
 
     input:
     tuple val(meta), path(trim), path(r1fq), path(r2fq)
@@ -29,7 +29,7 @@ process Fastqc {
 
 process Flagstat {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc", mode: 'copy'
+    publishDir "${params.resultsdir}/qc", mode: 'copy'
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
 
@@ -46,7 +46,7 @@ process Flagstat {
 
 process Idxstats {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc", mode: 'copy'
+    publishDir "${params.resultsdir}/qc", mode: 'copy'
 
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
@@ -64,7 +64,7 @@ process Idxstats {
 
 process CollectMultipleMetrics {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc/picard_metrics", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
     input:
     tuple val(meta),
     path(bam),
@@ -103,7 +103,7 @@ process CollectMultipleMetrics {
 process RNAseQC {
 
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/${meta.lib}", mode: 'copy'
 
     input:
     tuple val(meta),
@@ -136,7 +136,7 @@ process RNAseQC {
 process Kraken2 {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+    publishDir "${params.resultsdir}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
 
     input:
     tuple val(meta), path(r1fq), path(r2fq),path(kraken2_db)
@@ -171,7 +171,7 @@ process Kraken2 {
 process Krona {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+    publishDir "${params.resultsdir}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
 
     input:
     tuple val(meta), path(kraken2_output)
@@ -200,7 +200,7 @@ process Krona {
 process Multiqc {
     tag "$meta.id"
 
-    publishDir "${params.resultsdir}/${meta.id}/${meta.lib}/qc", mode: 'copy',pattern: "*html"
+    publishDir "${params.resultsdir}/${meta.lib}/qc", mode: 'copy',pattern: "*html"
 
     input:
     path(input_files)
