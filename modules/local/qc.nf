@@ -2,13 +2,13 @@
 process Fastqc {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/qc/", mode: 'copy',pattern: "fastqc"
+    publishDir "${params.resultsdir}/qc/fastqc", mode: 'copy',pattern: "fastqc"
 
     input:
     tuple val(meta), path(trim), path(r1fq), path(r2fq)
 
     output:
-    tuple val(meta), path("fastqc_${meta.lib}") , emit: fastqc_results
+    tuple val(meta), path("${meta.lib}_fastqc") , emit: fastqc_results
     path "versions.yml"             , emit: versions
 
 
@@ -17,8 +17,8 @@ process Fastqc {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    if [ ! -d fastqc_${meta.lib} ];then mkdir -p fastqc_${meta.lib};fi
-    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o fastqc_${meta.lib}
+    if [ ! -d ${meta.lib}_fastqc ];then mkdir -p ${meta.lib}_fastqc;fi
+    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o ${meta.lib}_fastqc
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -136,14 +136,14 @@ process RNAseQC {
 process Kraken2 {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+    publishDir "${params.resultsdir}/qc/kraken", mode: 'copy', pattern: "*.txt"
 
     input:
     tuple val(meta), path(r1fq), path(r2fq),path(kraken2_db)
 
     output:
-    tuple val(meta),path("${meta.lib}.kraken2_output.txt"), emit: kraken_output
-    tuple val(meta),path("${meta.lib}_kraken2.report.txt"), emit : kraken_report
+    tuple val(meta),path("${meta.lib}-${meta.genome}.kraken2_output.txt"), emit: kraken_output
+    tuple val(meta),path("${meta.lib}-${meta.genome}.kraken2.report.txt"), emit : kraken_report
     path "versions.yml"             , emit: versions
 
     stub:
@@ -158,7 +158,7 @@ process Kraken2 {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    kraken2 --db ${kraken2_db} --gzip-compressed --threads ${task.cpus} --output ${prefix}.kraken2_output.txt --paired ${r1fq} ${r2fq} --use-names --report ${prefix}_kraken2.report.txt
+    kraken2 --db ${kraken2_db} --gzip-compressed --threads ${task.cpus} --output ${prefix}-${meta.genome}.kraken2_output.txt --paired ${r1fq} ${r2fq} --use-names --report ${prefix}-${meta.genome}.kraken2.report.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -171,18 +171,18 @@ process Kraken2 {
 process Krona {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+    publishDir "${params.resultsdir}/qc/kraken", mode: 'copy', pattern: "*.txt"
 
     input:
     tuple val(meta), path(kraken2_output)
 
     output:
-    tuple val(meta),path("${meta.lib}.KronaReport.html"), emit: krona_output
+    tuple val(meta),path("${meta.lib}-${meta.genome}.kraken2.krona.html"), emit: krona_output
 
 
     stub:
     """
-    touch "${meta.lib}.KronaReport.html"
+    touch "${meta.lib}-${meta.genome}.kraken2.krona.html"
 
     """
 
@@ -191,7 +191,7 @@ process Krona {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    ktImportTaxonomy -q 2 -t 3 ${kraken2_output} -o ${prefix}.KronaReport.html
+    ktImportTaxonomy -q 2 -t 3 ${kraken2_output} -o ${prefix}-${meta.genome}.kraken2.krona.html
 
     """
 }
