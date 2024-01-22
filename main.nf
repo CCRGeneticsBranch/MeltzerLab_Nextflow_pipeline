@@ -1,3 +1,5 @@
+nextflow.enable.dsl=2
+
 log.info """\
 TOOL_NAME
 =============
@@ -33,22 +35,24 @@ workflow  {
         meta.sc = row.capture_targets
         meta.genome = row.genome
         meta.type = row.sample_type
+        meta.genome = row.genome
         def read1Path = "${input_dir}/${row.read1}"
         def read2Path = "${input_dir}/${row.read2}"
 
         def fastq_meta = [meta,read1Path, read2Path]
 
         return fastq_meta
-
     }
+
 
 samples = data.branch {
 RNA: it[0].type == "Total RNA"
-Tumor: it[0].type == "ChIP DNA"
+DNA: it[0].type == "ChIP DNA" || it[0].type == "Genomic DNA"
 }
 
+
 samples.RNA | RNA_workflow
-samples.Tumor | DNA_workflow
+samples.DNA | DNA_workflow
 
 
 }
