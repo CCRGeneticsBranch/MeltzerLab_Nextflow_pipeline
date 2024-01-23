@@ -68,21 +68,15 @@ Picard_MarkDuplicates(Picard_AddReadgroups.out
 
 picard_output = Picard_MarkDuplicates.out.bam.combine(Picard_MarkDuplicates.out.bai,by:[0])
 //picard_output.view()
-/*
+
 GATK_SplitNCigarReads(picard_output
           .combine(ref_folder)
           .combine(RNA_aligner))
 
 GATK_BaseRecalibrator(
      GATK_SplitNCigarReads.out
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(phase1_1000g)
-     .combine(phase1_1000g_idx)
-     .combine(Mills_and_1000g)
-     .combine(Mills_and_1000g_idx)
-     .combine(aligner)
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
 
 
@@ -90,12 +84,10 @@ Applybqsr_input = GATK_SplitNCigarReads.out.join(GATK_BaseRecalibrator.out,by:[0
 
 GATK_ApplyBQSR(
      Applybqsr_input
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(aligner)
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
-
+/*
 Flagstat(
      GATK_ApplyBQSR.out
      .combine(aligner)

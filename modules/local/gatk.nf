@@ -6,20 +6,19 @@ process GATK_SplitNCigarReads {
         tuple val(meta),
         path(bam),
         path(index),
-        path(genome),
-        path(genome_fai),
-        path(genome_dict)
+        path(ref_folder),
+        val(aligner)
 
         output:
         tuple val(meta),
-        path("${meta.lib}.split.bam"),
-        path("${meta.lib}.split.bai")
+        path("${meta.lib}.${aligner}_${meta.genome}.split.bam"),
+        path("${meta.lib}.${aligner}_${meta.genome}.split.bai")
 
 
         script:
 
         """
-        java -Xmx70g -jar \$GATK_JAR SplitNCigarReads -R $genome -I $bam -O ${meta.lib}.split.bam
+        java -Xmx70g -jar \$GATK_JAR SplitNCigarReads -R ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa -I $bam -O ${meta.lib}.${aligner}_${meta.genome}.split.bam
 
         """
 }
@@ -32,13 +31,7 @@ process GATK_BaseRecalibrator {
       tuple val(meta),
       path(bam),
       path(bai),
-      path(genome),
-      path(genome_fai),
-      path(genome_dict),
-      path(phase1_1000g),
-      path(phase1_1000g_idx),
-      path(Mills_and_1000g),
-      path(Mills_and_1000g_idx),
+      path(ref_folder),
       val(aligner)
 
     output:
@@ -48,13 +41,16 @@ process GATK_BaseRecalibrator {
 
     script:
     """
-    java -Xmx70g -jar \$GATK_JAR  BaseRecalibrator \
-      -R ${genome} \
-      --known-sites  ${Mills_and_1000g} \
-      --known-sites  ${phase1_1000g} \
-      -I ${bam} \
-      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt
-
+    if [[ "${meta.genome}" == "hg19" || "${meta.genome}" == "hg38" ]]; then
+      java -Xmx70g -jar \$GATK_JAR  BaseRecalibrator \
+        -R ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
+        --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_dbsnp.vcf.gz \
+        --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_Mills_and_1000G_gold_standard.indels.vcf.gz \
+        --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_1000G_phase1.snps.high_confidence.vcf.gz \
+        --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_1000G_phase1.indels.vcf.gz \
+        -I ${bam} \
+        -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt
+    fi
     """
 
 }
@@ -68,24 +64,22 @@ process GATK_ApplyBQSR {
       path(bam),
       path(bai),
       path(recalibration),
-      path(genome),
-      path(genome_fai),
-      path(genome_dict),
+      path(ref_folder),
       val(aligner)
 
     output:
       tuple val(meta),
-      path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}_final.bam"),
-      path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}_final.bai")
+      path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}_final.bam"),
+      path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}_final.bai")
 
 
     script:
     """
     java -Xmx70g -jar \$GATK_JAR  ApplyBQSR \
-      -R ${genome} \
+      -R ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
       -I ${bam} \
       --bqsr-recal-file ${recalibration} \
-      -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}_final.bam
+      -O ${meta.lib}.${meta.id}.${aligner}-${meta.genome}_final.bam
 
     """
 
