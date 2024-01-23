@@ -29,16 +29,16 @@ process Fastqc {
 
 process Flagstat {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/qc", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.flagstat.txt")
+    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.flagstat.tsv")
 
     script:
     """
-    samtools flagstat ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.flagstat.txt
+    samtools flagstat --output-fmt tsv ${bam} > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.flagstat.tsv
 
     """
 
@@ -46,17 +46,17 @@ process Flagstat {
 
 process Idxstats {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/qc", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
 
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.txt")
+    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.tsv")
 
     script:
     """
-    samtools idxstats ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.txt
+    samtools idxstats ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.tsv
 
     """
 
