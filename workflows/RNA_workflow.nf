@@ -18,6 +18,10 @@ include {Flagstat
 
 workflow RNA_workflow {
 
+kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
+ref_folder = Channel.of(file(params.ref_folder, checkIfExists:true))
+RNA_aligner                 = Channel.value(params.RNA_aligner)
+/*
 star_genomeIndex        = Channel.of(file(params.star_genome_index, checkIfExists:true))
 gtf                     = Channel.of(file(params.gtf, checkIfExists:true))
 aligner                 = Channel.value(params.RNA_aligner)
@@ -30,13 +34,12 @@ phase1_1000g_idx            = Channel.of(file(params.phase1_1000g_idx, checkIfEx
 Mills_and_1000g_idx         = Channel.of(file(params.Mills_and_1000g_idx, checkIfExists:true))
 rRNA_interval               = Channel.of(file(params.rRNA_interval, checkIfExists:true))
 transcript_gtf              = Channel.of(file(params.transcript_gtf, checkIfExists:true))
-
+*/
 take:
      samples_ch
 
 main:
 
-kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
 
 Kraken2(samples_ch
      .combine(kraken2_db))
@@ -50,22 +53,25 @@ fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
 
 Fastqc(fastqc_input)
 
-Star(Fastp.out
-    .combine(star_genomeIndex)
-    .combine(gtf)
-    .combine(aligner)
+
+Star(Fastp.out.trim_reads
+    .combine(ref_folder)
+    .combine(RNA_aligner)
 )
 
-Picard_AddReadgroups(Star.out.genome_bam.combine(Star.out.genome_bai,by:[0]))
-Picard_MarkDuplicates(Picard_AddReadgroups.out)
+Picard_AddReadgroups(Star.out.genome_bam
+          .join(Star.out.genome_bai,by:[0])
+          .combine(RNA_aligner))
+
+Picard_MarkDuplicates(Picard_AddReadgroups.out
+          .combine(RNA_aligner))
+
 picard_output = Picard_MarkDuplicates.out.bam.combine(Picard_MarkDuplicates.out.bai,by:[0])
 //picard_output.view()
-
+/*
 GATK_SplitNCigarReads(picard_output
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-)
+          .combine(ref_folder)
+          .combine(RNA_aligner))
 
 GATK_BaseRecalibrator(
      GATK_SplitNCigarReads.out
@@ -123,15 +129,19 @@ multiqc_input = Fastqc.out.fastqc_results
                .join(Idxstats.out)
                .join(CollectMultipleMetrics.out)
                .join(Picard_MarkDuplicates.out.markdup)
+//merge = mergehla_status.normal.map{ meta, mergedcalls  -> [ meta.id, meta, mergedcalls ] }
 
+
+//multiqc_input.view()
+
+/*
 multiqc_input_files = multiqc_input.map { tuple -> tuple.drop(1) }
 multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
-
 
 
 Multiqc(multiqc_input_files,
            multiqc_input_meta)
 
-
+*/
 
 }
