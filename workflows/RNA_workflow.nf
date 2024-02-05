@@ -7,7 +7,8 @@ include {GATK_SplitNCigarReads
         GATK_BaseRecalibrator
         GATK_ApplyBQSR} from '../modules/local/gatk.nf'
 
-include {Flagstat
+include {Fastq_screen
+        Flagstat
         Idxstats
         CollectMultipleMetrics
         Fastqc
@@ -20,7 +21,10 @@ workflow RNA_workflow {
 
 kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
 ref_folder = Channel.of(file(params.ref_folder, checkIfExists:true))
+fastq_screen_config = Channel.of(file(params.fastq_screen_config, checkIfExists:true))
+fastq_screen_db = Channel.of(file(params.fastq_screen_db, checkIfExists:true))
 RNA_aligner                 = Channel.value(params.RNA_aligner)
+
 /*
 star_genomeIndex        = Channel.of(file(params.star_genome_index, checkIfExists:true))
 gtf                     = Channel.of(file(params.gtf, checkIfExists:true))
@@ -53,6 +57,11 @@ fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
 
 Fastqc(fastqc_input)
 
+Fastq_screen_input = Fastp.out.trim_reads
+                        .combine(fastq_screen_config)
+                        .combine(fastq_screen_db)
+
+Fastq_screen(Fastq_screen_input)
 
 Star(Fastp.out.trim_reads
     .combine(ref_folder)
@@ -67,7 +76,7 @@ Picard_MarkDuplicates(Picard_AddReadgroups.out
           .combine(RNA_aligner))
 
 picard_output = Picard_MarkDuplicates.out.bam.combine(Picard_MarkDuplicates.out.bai,by:[0])
-//picard_output.view()
+
 
 GATK_SplitNCigarReads(picard_output
           .combine(ref_folder)
@@ -87,24 +96,23 @@ GATK_ApplyBQSR(
      .combine(ref_folder)
      .combine(RNA_aligner)
 )
-/*
+
 Flagstat(
      GATK_ApplyBQSR.out
-     .combine(aligner)
+     .combine(RNA_aligner)
 )
 
 Idxstats(
      GATK_ApplyBQSR.out
-     .combine(aligner)
+     .combine(RNA_aligner)
 )
 
 CollectMultipleMetrics(
      GATK_ApplyBQSR.out
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(aligner)
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
+/*
 RNAseQC(
      picard_output
      .combine(genome)
