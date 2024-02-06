@@ -2,7 +2,9 @@ include {Fastp} from '../modules/local/Fastp.nf'
 include {BWA_mem2} from '../modules/local/bwa.nf'
 include {GATK_BaseRecalibrator} from '../modules/local/gatk.nf'
 include {GATK_ApplyBQSR} from '../modules/local/gatk.nf'
-include {Flagstat
+include {Fastq_screen
+        NGSCheckMate_vaf
+        Flagstat
         Idxstats
         CollectMultipleMetrics
         Fastqc
@@ -11,7 +13,7 @@ include {Flagstat
         Multiqc} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
-
+/*
 bwa_genomeindex = Channel.of(file(params.bwa_genomeindex, checkIfExists:true))
 aligner     = Channel.value(params.DNA_aligner)
 genome                  = Channel.of(file(params.genome, checkIfExists:true))
@@ -21,14 +23,19 @@ phase1_1000g            = Channel.of(file(params.phase1_1000g, checkIfExists:tru
 Mills_and_1000g         = Channel.of(file(params.Mills_and_1000g, checkIfExists:true))
 phase1_1000g_idx            = Channel.of(file(params.phase1_1000g_idx, checkIfExists:true))
 Mills_and_1000g_idx         = Channel.of(file(params.Mills_and_1000g_idx, checkIfExists:true))
-
+*/
+kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
+fastq_screen_config = Channel.of(file(params.fastq_screen_config, checkIfExists:true))
+fastq_screen_db = Channel.of(file(params.fastq_screen_db, checkIfExists:true))
+ref_folder = Channel.of(file(params.ref_folder, checkIfExists:true))
+aligner     = Channel.value(params.DNA_aligner)
 
 take:
      samples_ch
 
 main:
 
-kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
+
 
 Kraken2(samples_ch
      .combine(kraken2_db))
@@ -41,28 +48,31 @@ fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
 
 Fastqc(fastqc_input)
 
-BWA_mem2(Fastp.out
-         .combine(bwa_genomeindex)
+Fastq_screen_input = Fastp.out.trim_reads
+                        .combine(fastq_screen_config)
+                        .combine(fastq_screen_db)
+
+Fastq_screen(Fastq_screen_input)
+
+NGSCheckMate_vaf(Fastp.out.trim_reads
+          .combine(aligner)
+          )
+
+
+BWA_mem2(Fastp.out.trim_reads
+         .combine(ref_folder)
          .combine(aligner)
 )
 
 GATK_BaseRecalibrator(
      BWA_mem2.out
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(phase1_1000g)
-     .combine(phase1_1000g_idx)
-     .combine(Mills_and_1000g)
-     .combine(Mills_and_1000g_idx)
+     .combine(ref_folder)
      .combine(aligner)
 )
 Applybqsr_input = BWA_mem2.out.join(GATK_BaseRecalibrator.out,by:[0])
 GATK_ApplyBQSR(
      Applybqsr_input
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
+     .combine(ref_folder)
      .combine(aligner)
 )
 
@@ -78,12 +88,10 @@ Idxstats(
 
 CollectMultipleMetrics(
      GATK_ApplyBQSR.out
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
+     .combine(ref_folder)
      .combine(aligner)
 )
-
+/*
 multiqc_input = Fastqc.out.fastqc_results
                .join(Kraken2.out.kraken_report)
                .join(Krona.out.krona_output)
@@ -96,5 +104,5 @@ multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
 
 Multiqc(multiqc_input_files,
            multiqc_input_meta)
-
+*/
 }
