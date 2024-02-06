@@ -8,6 +8,7 @@ include {GATK_SplitNCigarReads
         GATK_ApplyBQSR} from '../modules/local/gatk.nf'
 
 include {Fastq_screen
+        NGSCheckMate_vaf
         Flagstat
         Idxstats
         CollectMultipleMetrics
@@ -62,6 +63,10 @@ Fastq_screen_input = Fastp.out.trim_reads
                         .combine(fastq_screen_db)
 
 Fastq_screen(Fastq_screen_input)
+
+NGSCheckMate_vaf(Fastp.out.trim_reads
+          .combine(RNA_aligner)
+          )
 
 Star(Fastp.out.trim_reads
     .combine(ref_folder)

@@ -27,6 +27,69 @@ process Fastqc {
     """
 }
 
+process Fastq_screen {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/qc/fastq_screen", mode: 'copy'
+
+    input:
+    tuple val(meta),path(trim),path(fastq_screen_config),path(fqs_db)
+
+    stub:
+    """
+    touch "${meta.lib}_R1_screen.html"
+    touch "${meta.lib}_R2_screen.html"
+    """
+
+    output:
+    tuple val(meta),path("*html"),path("*png"),path("*txt")
+
+
+    script:
+    def args = task.ext.args   ?: ''
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    if [ ! -d fastq_screen ];then mkdir -p fastq_screen;fi
+    ls ${fqs_db}
+    fastq_screen --conf ${fastq_screen_config} --subset 1000000 --aligner bowtie2 --force ${trim[0]} ${trim[1]}
+    """
+}
+
+process NGSCheckMate_vaf {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/qc/ncm/vaf", mode: 'copy'
+
+    input:
+    tuple val(meta),path(trim),val(aligner)
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf"
+    """
+
+    output:
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf")
+
+
+    script:
+    def args = task.ext.args   ?: ''
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+
+    /NGSCheckMate/ngscheckmate_fastq -p ${task.cpus} \
+            -1 ${trim[0]} \
+            -2 ${trim[1]} \
+            /NGSCheckMate/SNP/SNP.pt \
+            > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf
+    """
+}
+
 process Flagstat {
     tag "$meta.lib"
     publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
@@ -69,25 +132,23 @@ process CollectMultipleMetrics {
     tuple val(meta),
     path(bam),
     path(bai),
-    path(genome),
-    path(genome_fai),
-    path(genome_dict),
+    path(ref_folder),
     val(aligner)
 
     output:
     tuple val(meta),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.quality_distribution_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.alignment_summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.insert_size_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.gc_bias.summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.quality_yield_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_distribution_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.alignment_summary_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.insert_size_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.gc_bias.summary_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_yield_metrics")
 
     script:
     """
     java -Xmx60g -jar \$PICARDJAR CollectMultipleMetrics VALIDATION_STRINGENCY=SILENT \
     INPUT=${bam} \
-    OUTPUT=${meta.lib}.${meta.id}.${aligner}.${meta.genome} \
-    REFERENCE_SEQUENCE=${genome} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome} \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
     PROGRAM=CollectAlignmentSummaryMetrics \
     PROGRAM=CollectInsertSizeMetrics \
     PROGRAM=QualityScoreDistribution \
