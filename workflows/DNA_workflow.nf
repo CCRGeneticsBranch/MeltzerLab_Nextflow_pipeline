@@ -105,4 +105,6 @@ multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
 Multiqc(multiqc_input_files,
            multiqc_input_meta)
 */
+emit:
+ncm_vaf = NGSCheckMate_vaf.out.collect()
 }
