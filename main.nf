@@ -21,6 +21,7 @@ homeDir      : $workflow.homeDir
 
 include {DNA_workflow} from './workflows/DNA_workflow'
 include {RNA_workflow} from './workflows/RNA_workflow'
+
 workflow  {
 
 
@@ -33,7 +34,6 @@ workflow  {
         meta.id = row.flowcell
         meta.lib = row.library
         meta.sc = row.capture_targets
-        meta.genome = row.genome
         meta.type = row.sample_type
         meta.genome = row.genome
         def read1Path = "${input_dir}/${row.read1}"
@@ -54,5 +54,6 @@ DNA: it[0].type == "ChIP DNA" || it[0].type == "Genomic DNA"
 samples.RNA | RNA_workflow
 samples.DNA | DNA_workflow
 
-
+vaf_ch = DNA_workflow.out.ncm_vaf.ifEmpty([]).merge(RNA_workflow.out.ncm_vaf).ifEmpty([])
+vaf_ch.view()
 }
