@@ -50,6 +50,13 @@ process GATK_BaseRecalibrator {
         --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_1000G_phase1.indels.vcf.gz \
         -I ${bam} \
         -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt
+    elif [[ "${meta.genome}" == "mm10" || "${meta.genome}" == "mm39" ]]; then
+      java -Xmx70g -jar \$GATK_JAR  BaseRecalibrator \
+        -R ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
+        --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_snp.vcf \
+        --known-sites  ${ref_folder}/${meta.genome}/${meta.genome}_indels.vcf \
+        -I ${bam} \
+        -O ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.recalibration.matrix.txt
     fi
     """
 
