@@ -68,6 +68,7 @@ NGSCheckMate_vaf(Fastp.out.trim_reads
           .combine(RNA_aligner)
           )
 
+
 Star(Fastp.out.trim_reads
     .combine(ref_folder)
     .combine(RNA_aligner)
@@ -148,5 +149,7 @@ Multiqc(multiqc_input_files,
            multiqc_input_meta)
 
 */
+emit:
+ncm_vaf = NGSCheckMate_vaf.out.collect()
 
 }
