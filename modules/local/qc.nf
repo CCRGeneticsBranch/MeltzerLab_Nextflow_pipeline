@@ -90,6 +90,42 @@ process NGSCheckMate_vaf {
     """
 }
 
+
+process NGSCheckMate {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/qc/ncm", mode: 'copy'
+
+    input:
+    path(vaf_files)
+
+    stub:
+    """
+    touch "NGSCheckMate.pdf"
+    """
+
+    output:
+    path("NGSCheckMate.pdf")
+
+
+    script:
+    def args = task.ext.args   ?: ''
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    mv *vaf > \$TMP
+
+    python vaf_ncm.py -I \$TMP \
+            -O \$TMP \
+            -N NGSCheckMate
+    cp \$TMP/NGSCheckMate.pdf .
+    """
+}
+
+
 process Flagstat {
     tag "$meta.lib"
     publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
