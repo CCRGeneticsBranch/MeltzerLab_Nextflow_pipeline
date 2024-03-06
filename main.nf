@@ -46,14 +46,14 @@ workflow  {
 
 
 samples = data.branch {
-RNA: it[0].type == "Total RNA"
-DNA: it[0].type == "ChIP DNA" || it[0].type == "Genomic DNA"
+    RNA: it[0].type.contains("RNA")
+    DNA: it[0].type.contains("DNA")
 }
-
 
 samples.RNA | RNA_workflow
 samples.DNA | DNA_workflow
 
 vaf_ch = DNA_workflow.out.ncm_vaf.ifEmpty([]).merge(RNA_workflow.out.ncm_vaf).ifEmpty([])
-vaf_ch.view()
+
+
 }
