@@ -28,7 +28,7 @@ process Star {
 
 
         # run STAR alignment
-        STAR --genomeDir ${ref_folder}/${meta.genome}/Index_files/STAR_index/ \
+        STAR --genomeDir ${ref_folder}/${meta.genome}/Index_files/STAR_index \
             --readFilesIn ${trim[0]} ${trim[1]} \
             --readFilesCommand zcat \
             --sjdbGTFfile ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.gtf \
