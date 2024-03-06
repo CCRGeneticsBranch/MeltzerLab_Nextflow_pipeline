@@ -13,7 +13,6 @@ include {Fastq_screen
         Idxstats
         CollectMultipleMetrics
         Fastqc
-        RNAseQC
         Kraken2
         Krona
         Multiqc} from '../modules/local/qc.nf'
@@ -64,9 +63,11 @@ Fastq_screen_input = Fastp.out.trim_reads
 
 Fastq_screen(Fastq_screen_input)
 
-NGSCheckMate_vaf(Fastp.out.trim_reads
-          .combine(RNA_aligner)
-          )
+check_genome = Fastp.out.trim_reads.branch {
+     human: it[0].genome == "hg19" || it[0].genome == "hg38"
+}
+
+check_genome.human.combine(aligner)| NGSCheckMate_vaf
 
 
 Star(Fastp.out.trim_reads
