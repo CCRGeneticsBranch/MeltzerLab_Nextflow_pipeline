@@ -13,17 +13,7 @@ include {Fastq_screen
         Multiqc} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
-/*
-bwa_genomeindex = Channel.of(file(params.bwa_genomeindex, checkIfExists:true))
-aligner     = Channel.value(params.DNA_aligner)
-genome                  = Channel.of(file(params.genome, checkIfExists:true))
-genome_fai              = Channel.of(file(params.genome_fai, checkIfExists:true))
-genome_dict             = Channel.of(file(params.genome_dict, checkIfExists:true))
-phase1_1000g            = Channel.of(file(params.phase1_1000g, checkIfExists:true))
-Mills_and_1000g         = Channel.of(file(params.Mills_and_1000g, checkIfExists:true))
-phase1_1000g_idx            = Channel.of(file(params.phase1_1000g_idx, checkIfExists:true))
-Mills_and_1000g_idx         = Channel.of(file(params.Mills_and_1000g_idx, checkIfExists:true))
-*/
+
 kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
 fastq_screen_config = Channel.of(file(params.fastq_screen_config, checkIfExists:true))
 fastq_screen_db = Channel.of(file(params.fastq_screen_db, checkIfExists:true))
@@ -54,9 +44,12 @@ Fastq_screen_input = Fastp.out.trim_reads
 
 Fastq_screen(Fastq_screen_input)
 
-NGSCheckMate_vaf(Fastp.out.trim_reads
-          .combine(aligner)
-          )
+check_genome = Fastp.out.trim_reads.branch {
+     human: it[0].genome == "hg19" || it[0].genome == "hg38"
+}
+
+check_genome.human.combine(aligner)| NGSCheckMate_vaf
+
 
 
 BWA_mem2(Fastp.out.trim_reads
