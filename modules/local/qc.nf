@@ -58,7 +58,7 @@ process Fastq_screen {
 
 process NGSCheckMate_vaf {
     tag "$meta.lib"
-
+    // Running two step ngscheckmate. At library level we generate vaf file. later we run step 2 at run level.
     publishDir "${params.resultsdir}/qc/ncm/vaf", mode: 'copy'
 
     input:
@@ -82,17 +82,16 @@ process NGSCheckMate_vaf {
     mkdir \$TMP
     trap 'rm -rf "\$TMP"' EXIT
 
-    /NGSCheckMate/ngscheckmate_fastq -p ${task.cpus} \
+    \$NCM_HOME/ngscheckmate_fastq -p ${task.cpus} \
             -1 ${trim[0]} \
             -2 ${trim[1]} \
-            /NGSCheckMate/SNP/SNP.pt \
+            \$NCM_HOME/SNP/SNP.pt \
             > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf
     """
 }
 
 
 process NGSCheckMate {
-    tag "$meta.lib"
 
     publishDir "${params.resultsdir}/qc/ncm", mode: 'copy'
 
@@ -102,27 +101,63 @@ process NGSCheckMate {
     stub:
     """
     touch "NGSCheckMate.pdf"
+    touch "NGSCheckMate_all.txt"
     """
 
     output:
     path("NGSCheckMate.pdf")
+    path("NGSCheckMate_all.txt")
 
 
     script:
     def args = task.ext.args   ?: ''
-    def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
     TMP=tmp/
     mkdir \$TMP
     trap 'rm -rf "\$TMP"' EXIT
-    mv *vaf > \$TMP
+    mv *vaf \$TMP
 
-    python vaf_ncm.py -I \$TMP \
+    python \$NCM_HOME/vaf_ncm.py -I \$TMP \
             -O \$TMP \
             -N NGSCheckMate
     cp \$TMP/NGSCheckMate.pdf .
+    echo -e "Sample1\tmatched/unmatched\tSample2\tCorrelation\tDepth"| cat - \$TMP/NGSCheckMate_all.txt > NGSCheckMate_all.txt
+
     """
+}
+
+process Ncm_data_processing{
+
+    publishDir "${params.resultsdir}/qc/ncm", mode: 'copy'
+
+    input:
+    path(ncm_pdf)
+
+    stub:
+    """
+    touch "NGSCheckMate.pdf"
+    touch "NGSCheckMate_all.txt"
+    """
+
+    output:
+    path("NGSCheckMate.png")
+    path("NGSCheckMate_all.txt")
+
+
+    script:
+    def args = task.ext.args   ?: ''
+
+    """
+    convert -density 600 \
+    ${ncm_pdf} \
+    -background white -flatten -resize 15% -rotate 90 -colorspace RGB \
+    NGSCheckMate.png
+
+
+
+    """
+
 }
 
 
