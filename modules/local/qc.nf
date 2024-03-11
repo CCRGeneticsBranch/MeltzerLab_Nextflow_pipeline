@@ -105,8 +105,8 @@ process NGSCheckMate {
     """
 
     output:
-    path("NGSCheckMate.pdf")
-    path("NGSCheckMate_all.txt")
+    path("NGSCheckMate.pdf") , emit : pdf
+    path("NGSCheckMate_all.txt"), emit : png
 
 
     script:
@@ -136,25 +136,17 @@ process Ncm_data_processing{
 
     stub:
     """
-    touch "NGSCheckMate.pdf"
-    touch "NGSCheckMate_all.txt"
+    touch "NGSCheckMate.png"
     """
 
     output:
     path("NGSCheckMate.png")
-    path("NGSCheckMate_all.txt")
-
 
     script:
     def args = task.ext.args   ?: ''
 
     """
-    convert -density 600 \
-    ${ncm_pdf} \
-    -background white -flatten -resize 15% -rotate 90 -colorspace RGB \
-    NGSCheckMate.png
-
-
+    pdftoppm -png -r 600 ${ncm_pdf} -singlefile NGSCheckMate
 
     """
 
