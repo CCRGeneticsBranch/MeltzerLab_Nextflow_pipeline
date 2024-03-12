@@ -82,8 +82,8 @@ process GATK_ApplyBQSR {
 
     output:
       tuple val(meta),
-      path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}_final.bam"),
-      path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}_final.bai")
+      path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam"),
+      path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bai")
 
 
     script:
@@ -92,7 +92,7 @@ process GATK_ApplyBQSR {
       -R ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
       -I ${bam} \
       --bqsr-recal-file ${recalibration} \
-      -O ${meta.lib}.${meta.id}.${aligner}-${meta.genome}_final.bam
+      -O ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam
 
     """
 
