@@ -2,14 +2,15 @@
 process Fastqc {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/qc/fastqc", mode: 'copy',pattern: "fastqc"
+    publishDir "${params.resultsdir}/qc/fastqc", mode: 'copy',pattern: ['*zip', '*html']
 
     input:
-    tuple val(meta), path(trim), path(r1fq), path(r2fq)
+    tuple val(meta), path(r1fq), path(r2fq)
 
     output:
-    tuple val(meta), path("${meta.lib}_fastqc") , emit: fastqc_results
-    path "versions.yml"             , emit: versions
+    path("*fastqc.zip") , emit: fastqc_zip
+    path("*fastqc.html") , emit: fastqc_html
+    path "versions.yml"  , emit: versions
 
 
     script:
@@ -17,8 +18,10 @@ process Fastqc {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    if [ ! -d ${meta.lib}_fastqc ];then mkdir -p ${meta.lib}_fastqc;fi
-    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o ${meta.lib}_fastqc
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    fastqc --extract $r1fq $r2fq -t $task.cpus -o ./
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
