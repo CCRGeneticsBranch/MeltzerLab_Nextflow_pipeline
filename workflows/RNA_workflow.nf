@@ -15,7 +15,8 @@ include {Fastq_screen
         Fastqc
         Kraken2
         Krona
-        Multiqc} from '../modules/local/qc.nf'
+        Multiqc
+        RNAseQC} from '../modules/local/qc.nf'
 
 workflow RNA_workflow {
 
@@ -67,7 +68,7 @@ check_genome = Fastp.out.trim_reads.branch {
      human: it[0].genome == "hg19" || it[0].genome == "hg38"
 }
 
-check_genome.human.combine(aligner)| NGSCheckMate_vaf
+check_genome.human.combine(RNA_aligner)| NGSCheckMate_vaf
 
 
 Star(Fastp.out.trim_reads
@@ -119,16 +120,13 @@ CollectMultipleMetrics(
      .combine(ref_folder)
      .combine(RNA_aligner)
 )
-/*
-RNAseQC(
-     picard_output
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(rRNA_interval)
-     .combine(transcript_gtf)
-)
 
+RNAseQC(
+     GATK_ApplyBQSR.out
+     .combine(ref_folder)
+     .combine(RNA_aligner)
+)
+/*
 multiqc_input = Fastqc.out.fastqc_results
                .join(Kraken2.out.kraken_report)
                .join(Krona.out.krona_output)
