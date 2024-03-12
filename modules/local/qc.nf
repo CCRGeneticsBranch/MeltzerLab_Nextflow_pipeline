@@ -204,7 +204,9 @@ process CollectMultipleMetrics {
     path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.alignment_summary_metrics"),
     path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.insert_size_metrics"),
     path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.gc_bias.summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_yield_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_yield_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.jumping_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.oxoG_metrics")
 
     script:
     """
@@ -221,9 +223,19 @@ process CollectMultipleMetrics {
     PROGRAM=CollectSequencingArtifactMetrics \
     PROGRAM=CollectQualityYieldMetrics
 
+    java -Xmx60g -jar \$PICARDJAR CollectJumpingLibraryMetrics VALIDATION_STRINGENCY=SILENT \
+    VERBOSITY=ERROR \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.jumping_metrics
+
+    java -Xmx60g -jar \$PICARDJAR CollectOxoGMetrics VALIDATION_STRINGENCY=SILENT \
+    VERBOSITY=ERROR \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.oxoG_metrics \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa
+
     """
 }
-
 
 
 
