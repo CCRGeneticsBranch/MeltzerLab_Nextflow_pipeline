@@ -2,7 +2,7 @@
 process Fastqc {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/qc/fastqc", mode: 'copy',pattern: ['*zip', '*html']
+    publishDir "${params.resultsdir}/qc/fastqc", mode: 'copy',pattern:'*.{html,zip}'
 
     input:
     tuple val(meta), path(r1fq), path(r2fq)
@@ -36,7 +36,7 @@ process Fastq_screen {
     publishDir "${params.resultsdir}/qc/fastq_screen", mode: 'copy'
 
     input:
-    tuple val(meta),path(trim),path(fastq_screen_config),path(fqs_db)
+    tuple val(meta),path(r1fq), path(r2fq),path(fastq_screen_config),path(fqs_db)
 
     stub:
     """
@@ -45,7 +45,9 @@ process Fastq_screen {
     """
 
     output:
-    tuple val(meta),path("*html"),path("*png"),path("*txt")
+    path("*html")
+    path("*png")
+    path("*txt")
 
 
     script:
@@ -55,7 +57,7 @@ process Fastq_screen {
     """
     if [ ! -d fastq_screen ];then mkdir -p fastq_screen;fi
     ls ${fqs_db}
-    fastq_screen --conf ${fastq_screen_config} --subset 1000000 --aligner bowtie2 --force ${trim[0]} ${trim[1]}
+    fastq_screen --conf ${fastq_screen_config} --subset 1000000 --aligner bowtie2 --force $r1fq $r2fq
     """
 }
 
@@ -163,7 +165,7 @@ process Flagstat {
     tuple val(meta),path(bam),path(bai),val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.flagstat.tsv")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.flagstat.tsv")
 
     script:
     """
@@ -181,7 +183,7 @@ process Idxstats {
     tuple val(meta),path(bam),path(bai),val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.tsv")
+    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.tsv")
 
     script:
     """
@@ -202,13 +204,12 @@ process CollectMultipleMetrics {
     val(aligner)
 
     output:
-    tuple val(meta),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_distribution_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.alignment_summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.insert_size_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.gc_bias.summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_yield_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.jumping_metrics"),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_distribution_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.alignment_summary_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.insert_size_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.gc_bias.summary_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_yield_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.jumping_metrics")
     path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.oxoG_metrics")
 
     script:
@@ -318,7 +319,7 @@ process RNAseQC {
     val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}-${meta.genome}.metrics.tsv")
+    path("${meta.lib}-${meta.genome}.metrics.tsv")
 
 
     stub:
@@ -346,14 +347,11 @@ process RNAseQC {
 
 
 process Multiqc {
-    tag "$meta.id"
 
-    publishDir "${params.resultsdir}/${meta.lib}/qc", mode: 'copy',pattern: "*html"
+    publishDir "${params.resultsdir}/qc", mode: 'copy',pattern: "*html"
 
     input:
     path(input_files)
-    val(meta)
-
 
     output:
     path("multiqc_report.html") , emit: multiqc_report
@@ -362,8 +360,7 @@ process Multiqc {
     script:
     """
 
-    echo  "${input_files.join('\n')}" > multiqc_input_files
-    multiqc --file-list multiqc_input_files -f
+    multiqc .
 
 cat <<-END_VERSIONS > versions.yml
 "${task.process}":
