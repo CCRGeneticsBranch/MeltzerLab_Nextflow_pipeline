@@ -157,7 +157,35 @@ process Ncm_data_processing{
 
 }
 
+process Bam2tdf {
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/bam", mode: 'copy'
 
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    tuple val(meta),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf")
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf"
+    """
+    script:
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    igvtools count -z 10 ${bam} ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf  ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa
+    """
+
+
+}
 process Flagstat {
     tag "$meta.lib"
     publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
@@ -204,13 +232,8 @@ process CollectMultipleMetrics {
     val(aligner)
 
     output:
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_distribution_metrics")
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.alignment_summary_metrics")
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.insert_size_metrics")
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.gc_bias.summary_metrics")
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.quality_yield_metrics")
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.jumping_metrics")
-    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.oxoG_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.*metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.*.pdf")
 
     script:
     """
