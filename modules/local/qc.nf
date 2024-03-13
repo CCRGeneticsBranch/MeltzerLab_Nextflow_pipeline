@@ -264,6 +264,25 @@ process CollectMultipleMetrics {
     """
 }
 
+process Strandedness {
+     tag "$meta.lib"
+
+     input:
+        tuple val(meta), path(bam),path(index),path(ref_folder),val(aligner)
+
+     output:
+     tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.strandedness.txt")
+
+     script:
+      def args = task.ext.args   ?: ''
+      def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+     """
+     ngsderive strandedness -g ${ref_folder}/${meta.genome}/Index_files/${meta.genome}_sorted.gtf.gz \
+      ${bam} -n 10000 > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.strandedness.txt
+
+     """
+}
 
 
 process Kraken2 {
