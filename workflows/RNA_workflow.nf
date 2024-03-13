@@ -17,7 +17,8 @@ include {Fastq_screen
         Krona
         Multiqc
         RNAseQC
-        Strandedness} from '../modules/local/qc.nf'
+        Strandedness
+        CollectRnaSeqMetrics} from '../modules/local/qc.nf'
 
 workflow RNA_workflow {
 
@@ -83,8 +84,15 @@ Strandedness(Star.out.genome_bam
      .join(Star.out.genome_bai,by:[0])
      .combine(ref_folder)
      .combine(RNA_aligner))
-Strandedness.out.view()
 
+CollectRnaSeqMetrics(
+     Star.out.genome_bam
+     .join(Star.out.genome_bai,by:[0])
+     .join(Strandedness.out,by:[0])
+     .combine(ref_folder)
+     .combine(RNA_aligner))
+
+multiqc_ch =multiqc_ch.mix(CollectRnaSeqMetrics.out)
 
 Picard_AddReadgroups(Star.out.genome_bam
           .join(Star.out.genome_bai,by:[0])
