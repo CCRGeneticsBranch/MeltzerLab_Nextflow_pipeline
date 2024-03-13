@@ -34,7 +34,7 @@ process Picard_MarkDuplicates {
         output:
         tuple val(meta), path("${meta.lib}.${aligner}_${meta.genome}.dd.bam") , emit:bam
         tuple val(meta), path("${meta.lib}.${aligner}_${meta.genome}.dd.bam.bai") , emit:bai
-        tuple val(meta), path("${meta.lib}.${aligner}_${meta.genome}.markdup.txt") , emit: markdup
+        path("${meta.lib}.${aligner}_${meta.genome}.markdup.txt") , emit: markdup
 
 
         script:
