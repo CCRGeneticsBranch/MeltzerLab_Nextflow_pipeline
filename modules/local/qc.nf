@@ -323,6 +323,42 @@ process CollectRnaSeqMetrics {
 
 }
 
+
+process WgsMetrics {
+
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.wgsmetrics")
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.wgsmetrics"
+    """
+
+    script:
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    java -Xmx60g -jar \$PICARDJAR CollectWgsMetrics \
+    TMP_DIR=\$TMP \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
+    VALIDATION_STRINGENCY=SILENT \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.wgsmetrics \
+    INCLUDE_BQ_HISTOGRAM=true \
+    VERBOSITY=ERROR
+
+    """
+}
 process Kraken2 {
     tag "$meta.lib"
 

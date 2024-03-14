@@ -11,7 +11,8 @@ include {Fastq_screen
         Kraken2
         Krona
         Multiqc
-        Bam2tdf} from '../modules/local/qc.nf'
+        Bam2tdf
+        WgsMetrics} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
 
@@ -88,6 +89,17 @@ CollectMultipleMetrics(
      .combine(ref_folder)
      .combine(aligner)
 )
+
+WgsMetrics(
+     GATK_ApplyBQSR.out
+     .combine(ref_folder)
+     .combine(aligner)
+)
+
+check_capturekit = GATK_ApplyBQSR.out.branch {
+     yes:it[0].sc != ""
+}
+
 
 emit:
 ncm_vaf = NGSCheckMate_vaf.out.collect().ifEmpty([])
