@@ -10,7 +10,8 @@ include {Fastq_screen
         Fastqc
         Kraken2
         Krona
-        Multiqc} from '../modules/local/qc.nf'
+        Multiqc
+        Bam2tdf} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
 
@@ -25,7 +26,7 @@ take:
 
 main:
 
-
+Fastqc(samples_ch)
 
 Kraken2(samples_ch
      .combine(kraken2_db))
@@ -34,11 +35,8 @@ Krona(Kraken2.out.kraken_output)
 
 Fastp(samples_ch)
 
-fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
 
-Fastqc(fastqc_input)
-
-Fastq_screen_input = Fastp.out.trim_reads
+Fastq_screen_input = samples_ch
                         .combine(fastq_screen_config)
                         .combine(fastq_screen_db)
 
@@ -49,7 +47,6 @@ check_genome = Fastp.out.trim_reads.branch {
 }
 
 check_genome.human.combine(aligner)| NGSCheckMate_vaf
-
 
 
 BWA_mem2(Fastp.out.trim_reads
@@ -69,6 +66,13 @@ GATK_ApplyBQSR(
      .combine(aligner)
 )
 
+/*
+Bam2tdf(
+     GATK_ApplyBQSR.out
+     .combine(ref_folder)
+     .combine(aligner)
+)
+*/
 Flagstat(
      GATK_ApplyBQSR.out
      .combine(aligner)
@@ -84,20 +88,7 @@ CollectMultipleMetrics(
      .combine(ref_folder)
      .combine(aligner)
 )
-/*
-multiqc_input = Fastqc.out.fastqc_results
-               .join(Kraken2.out.kraken_report)
-               .join(Krona.out.krona_output)
-               .join(Flagstat.out)
-               .join(Idxstats.out)
-               .join(CollectMultipleMetrics.out)
 
-multiqc_input_files = multiqc_input.map { tuple -> tuple.drop(1) }
-multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
-
-Multiqc(multiqc_input_files,
-           multiqc_input_meta)
-*/
 emit:
-ncm_vaf = NGSCheckMate_vaf.out.collect()
+ncm_vaf = NGSCheckMate_vaf.out.collect().ifEmpty([])
 }
