@@ -12,7 +12,8 @@ include {Fastq_screen
         Krona
         Multiqc
         Bam2tdf
-        WgsMetrics} from '../modules/local/qc.nf'
+        WgsMetrics
+        HSmetrics} from '../modules/local/qc.nf'
 
 workflow DNA_workflow {
 
@@ -99,6 +100,9 @@ WgsMetrics(
 check_capturekit = GATK_ApplyBQSR.out.branch {
      yes:it[0].sc != ""
 }
+check_capturekit.yes
+     .combine(ref_folder)
+     .combine(aligner)|HSmetrics
 
 
 emit:
