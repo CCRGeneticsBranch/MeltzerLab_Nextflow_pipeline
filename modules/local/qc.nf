@@ -359,6 +359,52 @@ process WgsMetrics {
 
     """
 }
+
+process HSmetrics {
+
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.hsmetrics")
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.hsmetrics"
+    """
+
+    script:
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+
+    java -Xmx60g -jar \$PICARDJAR BedToIntervalList \
+    I=${ref_folder}/${meta.genome}/${meta.sc}.design.${meta.genome}.merged.bed \
+    O=BAIT_INTERVALS_list \
+    SD=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.dict
+
+    cp BAIT_INTERVALS_list TARGET_INTERVALS_list
+
+    java -Xmx60g -jar \$PICARDJAR CollectHsMetrics \
+    TMP_DIR=\$TMP \
+    BAIT_INTERVALS=BAIT_INTERVALS_list \
+    TARGET_INTERVALS=TARGET_INTERVALS_list \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.hsmetrics \
+    METRIC_ACCUMULATION_LEVEL=ALL_READS \
+    QUIET=true  \
+    VALIDATION_STRINGENCY=SILENT
+    """
+}
+
+
 process Kraken2 {
     tag "$meta.lib"
 
