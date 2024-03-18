@@ -1,42 +1,55 @@
 #!/bin/bash
 
-if [[ "$#" -ne "2" ]]; then
+if [[ "$#" -ne 1 ]]; then
     echo "   "
-    echo "Usage: ./nf.sh <profile> <samplesheet> [output_directory]"
+    echo "Usage: ./nf.sh  <samplesheet> "
     echo "   "
-    echo "This script requires two positional arguments:"
-    echo "1. <profile>: Specify the profile to use (e.g., hg19). More genome support coming soon."
-    echo "2. <samplesheet>: Provide the path to the samplesheet in Meltzer lab format."
-    echo "Optional Input:"
-    echo "3. [output_directory]: Customize the output directory path (default: $WF_HOME/results)."
-    echo "   "
+    echo "This script requires one positional argument:"
+    echo "<samplesheet>: Provide the path to the samplesheet in Meltzer lab format."
     exit
 fi
 
-module load nextflow/23.04.3 singularity  graphviz
+module load nextflow/23.10.0 singularity  graphviz
 
 SCRIPT_NAME="$0"
 SCRIPT_DIRNAME=$(readlink -f $(dirname $0))
 SCRIPT_BASENAME=$(basename $0)
 WF_HOME=$SCRIPT_DIRNAME
 
-export PROFILE=$1
-export SAMPLESHEET=$2
 
-if [ -n "$3" ]; then
-    OUTDIR="$3"
+CONFIG_FILE="$WF_HOME/nextflow.config"
+
+
+export SAMPLESHEET=$1
+
+export OUTDIR=$(dirname $SAMPLESHEET)
+
+if [ -d "$OUTDIR/RESULTS" ]; then
+    RESULTSDIR="$OUTDIR/RESULTS"
 else
-    OUTDIR="$WF_HOME/results"
+    RESULTSDIR="$OUTDIR/RESULTS"
+    mkdir "$RESULTSDIR"
 fi
+export RESULTSDIR
+
+export NXF_HOME="$OUTDIR/.nextflow"
+
+printenv|grep NXF
+
+
+export WORKDIR="$OUTDIR/work"
+export INPUTDIR="$OUTDIR/fastq"
 
 nf_cmd="nextflow"
 nf_cmd="$nf_cmd run"
+nf_cmd="$nf_cmd -c $CONFIG_FILE"
 nf_cmd="$nf_cmd $WF_HOME/main.nf -resume "
-nf_cmd="$nf_cmd -profile $PROFILE"
+nf_cmd="$nf_cmd -profile biowulf"
 #nf_cmd="$nf_cmd -with-trace"
 #nf_cmd="$nf_cmd -with-timeline"
 nf_cmd="$nf_cmd --samplesheet $SAMPLESHEET"
-nf_cmd="$nf_cmd --resultsdir $OUTDIR"
+nf_cmd="$nf_cmd --resultsdir $RESULTSDIR"
+nf_cmd="$nf_cmd --input_dir $INPUTDIR"
 
 echo $nf_cmd
 
