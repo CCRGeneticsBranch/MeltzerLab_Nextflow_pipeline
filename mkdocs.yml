@@ -2,7 +2,7 @@
 site_name: MeltzerLab_Nextflow_pipeline
 site_author: CCR Genetics branch
 site_description: >-
-  insert a one-line description of TOOL_NAME here
+  Nextflow based data processing QC pipeline for DNA and RNA samples.
 # Repository
 repo_name: CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline
 repo_url: https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline

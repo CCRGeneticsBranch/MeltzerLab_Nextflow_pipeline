@@ -181,7 +181,7 @@ process Bam2tdf {
     TMP=tmp/
     mkdir \$TMP
     trap 'rm -rf "\$TMP"' EXIT
-    igvtools count -z 10 ${bam} ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf  ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa
+    igvtools count -z 10  ${bam} ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf  ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa
     """
 
 
