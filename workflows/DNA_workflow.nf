@@ -28,7 +28,11 @@ take:
 
 main:
 
+multiqc_ch = Channel.of()
 Fastqc(samples_ch)
+
+multiqc_ch = multiqc_ch.mix(Fastqc.out.fastqc_zip)
+multiqc_ch = multiqc_ch.mix(Fastqc.out.fastqc_html)
 
 Kraken2(samples_ch
      .combine(kraken2_db))
@@ -36,6 +40,8 @@ Kraken2(samples_ch
 Krona(Kraken2.out.kraken_output)
 
 Fastp(samples_ch)
+multiqc_ch = multiqc_ch.mix(Fastp.out.html)
+multiqc_ch = multiqc_ch.mix(Fastp.out.json)
 
 
 Fastq_screen_input = samples_ch
@@ -43,6 +49,7 @@ Fastq_screen_input = samples_ch
                         .combine(fastq_screen_db)
 
 Fastq_screen(Fastq_screen_input)
+multiqc_ch =multiqc_ch.mix(Fastq_screen.out)
 
 check_genome = Fastp.out.trim_reads.branch {
      human: it[0].genome == "hg19" || it[0].genome == "hg38"
@@ -75,27 +82,33 @@ Bam2tdf(
      .combine(aligner)
 )
 */
+
 Flagstat(
      GATK_ApplyBQSR.out
      .combine(aligner)
 )
+multiqc_ch =multiqc_ch.mix(Flagstat.out)
 
 Idxstats(
      GATK_ApplyBQSR.out
      .combine(aligner)
 )
+multiqc_ch =multiqc_ch.mix(Idxstats.out)
 
 CollectMultipleMetrics(
      GATK_ApplyBQSR.out
      .combine(ref_folder)
      .combine(aligner)
 )
+multiqc_ch =multiqc_ch.mix(CollectMultipleMetrics.out)
 
 WgsMetrics(
      GATK_ApplyBQSR.out
      .combine(ref_folder)
      .combine(aligner)
 )
+multiqc_ch =multiqc_ch.mix(WgsMetrics.out)
+
 
 check_capturekit = GATK_ApplyBQSR.out.branch {
      yes:it[0].sc != ""
@@ -104,7 +117,11 @@ check_capturekit.yes
      .combine(ref_folder)
      .combine(aligner)|HSmetrics
 
+multiqc_ch =multiqc_ch.mix(HSmetrics.out).ifEmpty([])
+
 
 emit:
 ncm_vaf = NGSCheckMate_vaf.out.collect().ifEmpty([])
+multiqc_ch = multiqc_ch.ifEmpty([])
+
 }
