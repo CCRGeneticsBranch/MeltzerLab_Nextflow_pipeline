@@ -149,5 +149,5 @@ multiqc_ch =multiqc_ch.mix(RNAseQC.out)
 
 emit:
 ncm_vaf = NGSCheckMate_vaf.out.collect().ifEmpty([])
-multiqc_ch = multiqc_ch
+multiqc_ch = multiqc_ch.ifEmpty([])
 }
