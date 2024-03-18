@@ -7,17 +7,28 @@ include {GATK_SplitNCigarReads
         GATK_BaseRecalibrator
         GATK_ApplyBQSR} from '../modules/local/gatk.nf'
 
-include {Flagstat
+include {Fastq_screen
+        NGSCheckMate_vaf
+        Flagstat
         Idxstats
         CollectMultipleMetrics
         Fastqc
-        RNAseQC
         Kraken2
         Krona
-        Multiqc} from '../modules/local/qc.nf'
+        Multiqc
+        RNAseQC
+        Strandedness
+        CollectRnaSeqMetrics} from '../modules/local/qc.nf'
 
 workflow RNA_workflow {
 
+kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
+ref_folder = Channel.of(file(params.ref_folder, checkIfExists:true))
+fastq_screen_config = Channel.of(file(params.fastq_screen_config, checkIfExists:true))
+fastq_screen_db = Channel.of(file(params.fastq_screen_db, checkIfExists:true))
+RNA_aligner                 = Channel.value(params.RNA_aligner)
+
+/*
 star_genomeIndex        = Channel.of(file(params.star_genome_index, checkIfExists:true))
 gtf                     = Channel.of(file(params.gtf, checkIfExists:true))
 aligner                 = Channel.value(params.RNA_aligner)
@@ -30,14 +41,17 @@ phase1_1000g_idx            = Channel.of(file(params.phase1_1000g_idx, checkIfEx
 Mills_and_1000g_idx         = Channel.of(file(params.Mills_and_1000g_idx, checkIfExists:true))
 rRNA_interval               = Channel.of(file(params.rRNA_interval, checkIfExists:true))
 transcript_gtf              = Channel.of(file(params.transcript_gtf, checkIfExists:true))
-
+*/
 take:
      samples_ch
 
 main:
 
-kraken2_db = Channel.of(file(params.kraken2_db, checkIfExists:true))
+multiqc_ch = Channel.of()
+Fastqc(samples_ch)
 
+multiqc_ch = multiqc_ch.mix(Fastqc.out.fastqc_zip)
+multiqc_ch = multiqc_ch.mix(Fastqc.out.fastqc_html)
 Kraken2(samples_ch
      .combine(kraken2_db))
 
@@ -45,93 +59,95 @@ Krona(Kraken2.out.kraken_output)
 
 
 Fastp(samples_ch)
+multiqc_ch = multiqc_ch.mix(Fastp.out.html)
+multiqc_ch = multiqc_ch.mix(Fastp.out.json)
+Fastq_screen_input = samples_ch
+                        .combine(fastq_screen_config)
+                        .combine(fastq_screen_db)
 
-fastqc_input = Fastp.out.trim_reads.join(samples_ch, by:[0])
+Fastq_screen(Fastq_screen_input)
+multiqc_ch =multiqc_ch.mix(Fastq_screen.out)
 
-Fastqc(fastqc_input)
+check_genome = Fastp.out.trim_reads.branch {
+     human: it[0].genome == "hg19" || it[0].genome == "hg38"
+}
 
-Star(Fastp.out
-    .combine(star_genomeIndex)
-    .combine(gtf)
-    .combine(aligner)
+check_genome.human.combine(RNA_aligner)| NGSCheckMate_vaf
+
+
+Star(Fastp.out.trim_reads
+    .combine(ref_folder)
+    .combine(RNA_aligner)
 )
 
-Picard_AddReadgroups(Star.out.genome_bam.combine(Star.out.genome_bai,by:[0]))
-Picard_MarkDuplicates(Picard_AddReadgroups.out)
+Strandedness(Star.out.genome_bam
+     .join(Star.out.genome_bai,by:[0])
+     .combine(ref_folder)
+     .combine(RNA_aligner))
+
+CollectRnaSeqMetrics(
+     Star.out.genome_bam
+     .join(Star.out.genome_bai,by:[0])
+     .join(Strandedness.out,by:[0])
+     .combine(ref_folder)
+     .combine(RNA_aligner))
+
+multiqc_ch =multiqc_ch.mix(CollectRnaSeqMetrics.out)
+
+Picard_AddReadgroups(Star.out.genome_bam
+          .join(Star.out.genome_bai,by:[0])
+          .combine(RNA_aligner))
+
+Picard_MarkDuplicates(Picard_AddReadgroups.out
+          .combine(RNA_aligner))
+
+multiqc_ch =multiqc_ch.mix(Picard_MarkDuplicates.out.markdup)
+
 picard_output = Picard_MarkDuplicates.out.bam.combine(Picard_MarkDuplicates.out.bai,by:[0])
-//picard_output.view()
+
 
 GATK_SplitNCigarReads(picard_output
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-)
+          .combine(ref_folder)
+          .combine(RNA_aligner))
 
 GATK_BaseRecalibrator(
      GATK_SplitNCigarReads.out
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(phase1_1000g)
-     .combine(phase1_1000g_idx)
-     .combine(Mills_and_1000g)
-     .combine(Mills_and_1000g_idx)
-     .combine(aligner)
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
-
 
 Applybqsr_input = GATK_SplitNCigarReads.out.join(GATK_BaseRecalibrator.out,by:[0])
 
 GATK_ApplyBQSR(
      Applybqsr_input
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(aligner)
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
 
 Flagstat(
      GATK_ApplyBQSR.out
-     .combine(aligner)
+     .combine(RNA_aligner)
 )
-
+multiqc_ch =multiqc_ch.mix(Flagstat.out)
 Idxstats(
      GATK_ApplyBQSR.out
-     .combine(aligner)
+     .combine(RNA_aligner)
 )
-
+multiqc_ch =multiqc_ch.mix(Idxstats.out)
 CollectMultipleMetrics(
      GATK_ApplyBQSR.out
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(aligner)
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
+multiqc_ch =multiqc_ch.mix(CollectMultipleMetrics.out)
 RNAseQC(
-     picard_output
-     .combine(genome)
-     .combine(genome_fai)
-     .combine(genome_dict)
-     .combine(rRNA_interval)
-     .combine(transcript_gtf)
+     GATK_ApplyBQSR.out
+     .combine(ref_folder)
+     .combine(RNA_aligner)
 )
+multiqc_ch =multiqc_ch.mix(RNAseQC.out)
 
-multiqc_input = Fastqc.out.fastqc_results
-               .join(Kraken2.out.kraken_report)
-               .join(Krona.out.krona_output)
-               .join(Flagstat.out)
-               .join(Idxstats.out)
-               .join(CollectMultipleMetrics.out)
-               .join(Picard_MarkDuplicates.out.markdup)
-
-multiqc_input_files = multiqc_input.map { tuple -> tuple.drop(1) }
-multiqc_input_meta = multiqc_input.map { tuple -> tuple[0] }
-
-
-
-Multiqc(multiqc_input_files,
-           multiqc_input_meta)
-
-
-
+emit:
+ncm_vaf = NGSCheckMate_vaf.out.collect().ifEmpty([])
+multiqc_ch = multiqc_ch.ifEmpty([])
 }

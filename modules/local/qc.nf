@@ -2,14 +2,15 @@
 process Fastqc {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/${meta.id}/qc/", mode: 'copy',pattern: "fastqc"
+    publishDir "${params.resultsdir}/qc/fastqc", mode: 'copy',pattern:'*.{html,zip}'
 
     input:
-    tuple val(meta), path(trim), path(r1fq), path(r2fq)
+    tuple val(meta), path(r1fq), path(r2fq)
 
     output:
-    tuple val(meta), path("fastqc_${meta.lib}") , emit: fastqc_results
-    path "versions.yml"             , emit: versions
+    path("*fastqc.zip") , emit: fastqc_zip
+    path("*fastqc.html") , emit: fastqc_html
+    path "versions.yml"  , emit: versions
 
 
     script:
@@ -17,8 +18,10 @@ process Fastqc {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    if [ ! -d fastqc_${meta.lib} ];then mkdir -p fastqc_${meta.lib};fi
-    fastqc --extract ${trim[0]} ${trim[1]} $r1fq $r2fq -t $task.cpus -o fastqc_${meta.lib}
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    fastqc --extract $r1fq $r2fq -t $task.cpus -o ./
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -27,18 +30,174 @@ process Fastqc {
     """
 }
 
+process Fastq_screen {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/qc/fastq_screen", mode: 'copy'
+
+    input:
+    tuple val(meta),path(r1fq), path(r2fq),path(fastq_screen_config),path(fqs_db)
+
+    stub:
+    """
+    touch "${meta.lib}_R1_screen.html"
+    touch "${meta.lib}_R2_screen.html"
+    """
+
+    output:
+    path("*html")
+    path("*png")
+    path("*txt")
+
+
+    script:
+    def args = task.ext.args   ?: ''
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    if [ ! -d fastq_screen ];then mkdir -p fastq_screen;fi
+    ls ${fqs_db}
+    fastq_screen --conf ${fastq_screen_config} --subset 1000000 --aligner bowtie2 --force $r1fq $r2fq
+    """
+}
+
+process NGSCheckMate_vaf {
+    tag "$meta.lib"
+    // Running two step ngscheckmate. At library level we generate vaf file. later we run step 2 at run level.
+    publishDir "${params.resultsdir}/qc/ncm/vaf", mode: 'copy'
+
+    input:
+    tuple val(meta),path(trim),val(aligner)
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf"
+    """
+
+    output:
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf")
+
+
+    script:
+    def args = task.ext.args   ?: ''
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+
+    \$NCM_HOME/ngscheckmate_fastq -p ${task.cpus} \
+            -1 ${trim[0]} \
+            -2 ${trim[1]} \
+            \$NCM_HOME/SNP/SNP.pt \
+            > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.vaf
+    """
+}
+
+
+process NGSCheckMate {
+
+    publishDir "${params.resultsdir}/qc/ncm", mode: 'copy'
+
+    input:
+    path(vaf_files)
+
+    stub:
+    """
+    touch "NGSCheckMate.pdf"
+    touch "NGSCheckMate_all.txt"
+    """
+
+    output:
+    path("NGSCheckMate.pdf") , emit : pdf
+    path("NGSCheckMate_all.txt"), emit : png
+
+
+    script:
+    def args = task.ext.args   ?: ''
+
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    mv *vaf \$TMP
+
+    python \$NCM_HOME/vaf_ncm.py -I \$TMP \
+            -O \$TMP \
+            -N NGSCheckMate
+    cp \$TMP/NGSCheckMate.pdf .
+    echo -e "Sample1\tmatched/unmatched\tSample2\tCorrelation\tDepth"| cat - \$TMP/NGSCheckMate_all.txt > NGSCheckMate_all.txt
+
+    """
+}
+
+process Ncm_data_processing{
+
+    publishDir "${params.resultsdir}/qc/ncm", mode: 'copy'
+
+    input:
+    path(ncm_pdf)
+
+    stub:
+    """
+    touch "NGSCheckMate.png"
+    """
+
+    output:
+    path("NGSCheckMate.png")
+
+    script:
+    def args = task.ext.args   ?: ''
+
+    """
+    pdftoppm -png -r 600 ${ncm_pdf} -singlefile NGSCheckMate
+
+    """
+
+}
+
+process Bam2tdf {
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/bam", mode: 'copy'
+
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    tuple val(meta),
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf")
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf"
+    """
+    script:
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    igvtools count -z 10 ${bam} ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.final.bam.tdf  ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa
+    """
+
+
+}
 process Flagstat {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.flagstat.txt")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.flagstat.tsv")
 
     script:
     """
-    samtools flagstat ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.flagstat.txt
+    samtools flagstat --output-fmt tsv ${bam} > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.flagstat.tsv
 
     """
 
@@ -46,17 +205,17 @@ process Flagstat {
 
 process Idxstats {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/samtools", mode: 'copy'
 
     input:
     tuple val(meta),path(bam),path(bai),val(aligner)
 
     output:
-    tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.txt")
+    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.tsv")
 
     script:
     """
-    samtools idxstats ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.txt
+    samtools idxstats ${bam} > ${meta.lib}.${meta.id}.${aligner}.${meta.genome}.idxstats.tsv
 
     """
 
@@ -64,30 +223,24 @@ process Idxstats {
 
 process CollectMultipleMetrics {
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc/picard_metrics", mode: 'copy'
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
     input:
     tuple val(meta),
     path(bam),
     path(bai),
-    path(genome),
-    path(genome_fai),
-    path(genome_dict),
+    path(ref_folder),
     val(aligner)
 
     output:
-    tuple val(meta),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.quality_distribution_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.alignment_summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.insert_size_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.gc_bias.summary_metrics"),
-    path("${meta.lib}.${meta.id}.${aligner}.${meta.genome}.quality_yield_metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.*metrics")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.*.pdf")
 
     script:
     """
     java -Xmx60g -jar \$PICARDJAR CollectMultipleMetrics VALIDATION_STRINGENCY=SILENT \
     INPUT=${bam} \
-    OUTPUT=${meta.lib}.${meta.id}.${aligner}.${meta.genome} \
-    REFERENCE_SEQUENCE=${genome} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome} \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
     PROGRAM=CollectAlignmentSummaryMetrics \
     PROGRAM=CollectInsertSizeMetrics \
     PROGRAM=QualityScoreDistribution \
@@ -97,53 +250,172 @@ process CollectMultipleMetrics {
     PROGRAM=CollectSequencingArtifactMetrics \
     PROGRAM=CollectQualityYieldMetrics
 
+    java -Xmx60g -jar \$PICARDJAR CollectJumpingLibraryMetrics VALIDATION_STRINGENCY=SILENT \
+    VERBOSITY=ERROR \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.jumping_metrics
+
+    java -Xmx60g -jar \$PICARDJAR CollectOxoGMetrics VALIDATION_STRINGENCY=SILENT \
+    VERBOSITY=ERROR \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.oxoG_metrics \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa
+
     """
 }
 
-process RNAseQC {
+process Strandedness {
+     tag "$meta.lib"
+
+     input:
+        tuple val(meta), path(bam),path(index),path(ref_folder),val(aligner)
+
+     output:
+     tuple val(meta),path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.strandedness.txt")
+
+     script:
+      def args = task.ext.args   ?: ''
+      def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+     """
+     ngsderive strandedness -g ${ref_folder}/${meta.genome}/Index_files/${meta.genome}_sorted.gtf.gz \
+      ${bam} -n 10000 > ${meta.lib}.${meta.id}.${aligner}-${meta.genome}.strandedness.txt
+
+     """
+}
+
+process CollectRnaSeqMetrics {
 
     tag "$meta.lib"
-    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}", mode: 'copy'
-
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
     input:
     tuple val(meta),
-        path(bam),
-        path(index),
-        path(genome),
-        path(genome_fai),
-        path(genome_dict),
-        path(rRNA_interval),
-        path(transcript_gtf)
+    path(bam),
+    path(bai),
+    path(strandedness),
+    path(ref_folder),
+    val(aligner)
 
     output:
-    tuple val(meta),
-        path("rnaseqc/report.html")
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.rsmetrics")
 
     stub:
-     """
-     touch "report.html"
-     """
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.rsmetrics"
+    """
 
     script:
-     """
-     java -jar \$RNASEQCJAR -r ${genome} -rRNA ${rRNA_interval} -o rnaseqc -s "${meta.lib}|${bam}|${meta.lib}" -t ${transcript_gtf}
+    """
+    STRAND=`strandedness.py ${strandedness} picard`
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    java -Xmx60g -jar \$PICARDJAR CollectRnaSeqMetrics \
+    TMP_DIR=\$TMP \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
+    REF_FLAT=${ref_folder}/${meta.genome}/${meta.genome}_refFlat.txt.gz \
+    VALIDATION_STRINGENCY=SILENT \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.rsmetrics \
+    STRAND_SPECIFICITY=\$STRAND
 
-     """
+    """
 
+}
+
+
+process WgsMetrics {
+
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.wgsmetrics")
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.wgsmetrics"
+    """
+
+    script:
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    java -Xmx60g -jar \$PICARDJAR CollectWgsMetrics \
+    TMP_DIR=\$TMP \
+    REFERENCE_SEQUENCE=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.fa \
+    VALIDATION_STRINGENCY=SILENT \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.wgsmetrics \
+    INCLUDE_BQ_HISTOGRAM=true \
+    VERBOSITY=ERROR
+
+    """
+}
+
+process HSmetrics {
+
+    tag "$meta.lib"
+    publishDir "${params.resultsdir}/qc/picard_metrics", mode: 'copy'
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    path("${meta.lib}.${meta.id}.${aligner}-${meta.genome}.hsmetrics")
+
+    stub:
+    """
+    touch "${meta.lib}.${meta.id}.${aligner}-${meta.genome}.hsmetrics"
+    """
+
+    script:
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+
+    java -Xmx60g -jar \$PICARDJAR BedToIntervalList \
+    I=${ref_folder}/${meta.genome}/${meta.sc}.design.${meta.genome}.merged.bed \
+    O=BAIT_INTERVALS_list \
+    SD=${ref_folder}/${meta.genome}/Index_files/${meta.genome}.dict
+
+    cp BAIT_INTERVALS_list TARGET_INTERVALS_list
+
+    java -Xmx60g -jar \$PICARDJAR CollectHsMetrics \
+    TMP_DIR=\$TMP \
+    BAIT_INTERVALS=BAIT_INTERVALS_list \
+    TARGET_INTERVALS=TARGET_INTERVALS_list \
+    INPUT=${bam} \
+    OUTPUT=${meta.lib}.${meta.id}.${aligner}-${meta.genome}.hsmetrics \
+    METRIC_ACCUMULATION_LEVEL=ALL_READS \
+    QUIET=true  \
+    VALIDATION_STRINGENCY=SILENT
+    """
 }
 
 
 process Kraken2 {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+    publishDir "${params.resultsdir}/qc/kraken", mode: 'copy', pattern: "*.txt"
 
     input:
     tuple val(meta), path(r1fq), path(r2fq),path(kraken2_db)
 
     output:
-    tuple val(meta),path("${meta.lib}.kraken2_output.txt"), emit: kraken_output
-    tuple val(meta),path("${meta.lib}_kraken2.report.txt"), emit : kraken_report
+    tuple val(meta),path("${meta.lib}-${meta.genome}.kraken2_output.txt"), emit: kraken_output
+    tuple val(meta),path("${meta.lib}-${meta.genome}.kraken2.report.txt"), emit : kraken_report
     path "versions.yml"             , emit: versions
 
     stub:
@@ -158,7 +430,7 @@ process Kraken2 {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    kraken2 --db ${kraken2_db} --gzip-compressed --threads ${task.cpus} --output ${prefix}.kraken2_output.txt --paired ${r1fq} ${r2fq} --use-names --report ${prefix}_kraken2.report.txt
+    kraken2 --db ${kraken2_db} --gzip-compressed --threads ${task.cpus} --output ${prefix}-${meta.genome}.kraken2_output.txt --paired ${r1fq} ${r2fq} --use-names --report ${prefix}-${meta.genome}.kraken2.report.txt
 
     cat <<-END_VERSIONS > versions.yml
     "${task.process}":
@@ -171,18 +443,18 @@ process Kraken2 {
 process Krona {
     tag "$meta.lib"
 
-    publishDir "${params.resultsdir}/${meta.id}/qc/${meta.lib}/kraken", mode: 'copy', pattern: "*.txt"
+    publishDir "${params.resultsdir}/qc/kraken", mode: 'copy', pattern: "*.txt"
 
     input:
     tuple val(meta), path(kraken2_output)
 
     output:
-    tuple val(meta),path("${meta.lib}.KronaReport.html"), emit: krona_output
+    tuple val(meta),path("${meta.lib}-${meta.genome}.kraken2.krona.html"), emit: krona_output
 
 
     stub:
     """
-    touch "${meta.lib}.KronaReport.html"
+    touch "${meta.lib}-${meta.genome}.kraken2.krona.html"
 
     """
 
@@ -191,21 +463,57 @@ process Krona {
     def prefix   = task.ext.prefix ?: "${meta.lib}"
 
     """
-    ktImportTaxonomy -q 2 -t 3 ${kraken2_output} -o ${prefix}.KronaReport.html
+    ktImportTaxonomy -q 2 -t 3 ${kraken2_output} -o ${prefix}-${meta.genome}.kraken2.krona.html
 
     """
 }
 
+process RNAseQC {
+    tag "$meta.lib"
+
+    publishDir "${params.resultsdir}/qc/rnaseqc", mode: 'copy'
+
+    input:
+    tuple val(meta),
+    path(bam),
+    path(bai),
+    path(ref_folder),
+    val(aligner)
+
+    output:
+    path("${meta.lib}-${meta.genome}.metrics.tsv")
+
+
+    stub:
+    """
+    touch "${meta.lib}-${meta.genome}.metrics.tsv"
+
+    """
+
+
+    script:
+    def prefix   = task.ext.prefix ?: "${meta.lib}"
+
+    """
+    TMP=tmp/
+    mkdir \$TMP
+    trap 'rm -rf "\$TMP"' EXIT
+    rnaseqc ${ref_folder}/${meta.genome}/Index_files/${meta.genome}_genes.gtf  ${bam}  \$TMP -s ${meta.lib}-${meta.genome} --coverage
+    mv \$TMP/*metrics.tsv .
+
+
+    """
+
+
+}
+
 
 process Multiqc {
-    tag "$meta.id"
 
-    publishDir "${params.resultsdir}/${meta.id}/${meta.lib}/qc", mode: 'copy',pattern: "*html"
+    publishDir "${params.resultsdir}/qc", mode: 'copy',pattern: "*html"
 
     input:
     path(input_files)
-    val(meta)
-
 
     output:
     path("multiqc_report.html") , emit: multiqc_report
@@ -214,8 +522,7 @@ process Multiqc {
     script:
     """
 
-    echo  "${input_files.join('\n')}" > multiqc_input_files
-    multiqc --file-list multiqc_input_files -f
+    multiqc .
 
 cat <<-END_VERSIONS > versions.yml
 "${task.process}":

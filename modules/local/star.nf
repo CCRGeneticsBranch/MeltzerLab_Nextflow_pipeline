@@ -1,10 +1,9 @@
 process Star {
     tag "$meta.lib"
-    scratch true
-    //publishDir "${params.resultsdir}/${meta.id}/${meta.casename}/${meta.lib}", mode: "copy",pattern: "${meta.lib}*"
+
 
     input:
-    tuple val(meta), path(trim),path(star_genomeIndex),path(gtf),val(aligner)
+    tuple val(meta), path(trim),path(ref_folder),val(aligner)
 
     output:
     tuple val(meta), path("${meta.lib}.Aligned.toTranscriptome.out.${aligner}_${meta.genome}.bam") , emit: transcriptome_bam
@@ -29,10 +28,10 @@ process Star {
 
 
         # run STAR alignment
-        STAR --genomeDir ${star_genomeIndex} \
+        STAR --genomeDir ${ref_folder}/${meta.genome}/Index_files/STAR_index \
             --readFilesIn ${trim[0]} ${trim[1]} \
             --readFilesCommand zcat \
-            --sjdbGTFfile ${gtf} \
+            --sjdbGTFfile ${ref_folder}/${meta.genome}/Index_files/${meta.genome}.gtf \
             --runThreadN ${task.cpus} \
             --twopassMode Basic \
             --outSAMunmapped Within \
