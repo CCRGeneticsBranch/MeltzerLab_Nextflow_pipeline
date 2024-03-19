@@ -27,7 +27,14 @@ eg: /data/GBNCI/MeltzerLab_Nextflow_pipeline/nf.sh /data/GBNCI/DATA/VG_test/samp
 
 ```
 
-## Samplesheet
+## Input Samplesheet
+
+Input file is a tab seperated samplesheet file from Meltzer lab. However the pipeline can be launched as long as these columns are present.
+Here is an example of the expected format.
+
+| flowcell | library       | sample_type | genome | read1                   | read2                    | capture_targets             |
+|----------|---------------|-------------|--------|-------------------------|--------------------------|-----------------------------|
+| AAZ123   | L080123_RNA   | Total RNA   | hg19   | L080123_RNA_R1.fastq.gz | L080123_RNA_R1.fastq.gz | APC_TP53_BAC_KlenowBait   |
 
 
 ## Help & Contributing
