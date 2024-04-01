@@ -8,6 +8,11 @@ This repository contains a Nextflow based DNA/RNA data processing pipeline built
 | Mouse  | mm10, mm39       |
 | Dog    | canFam3, canFam6 |
 
+# Pipeline Overview
+
+![Meltzarlab_dataProcessing_workflow (1)](https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline/assets/8798661/0b60bb1e-4770-41f1-90be-368cffd71cc9)
+
+
 This pipeline is developed and deployed solely on NIH Biowulf.
 
 # Biowulf
