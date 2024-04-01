@@ -33,6 +33,7 @@ fi
 export RESULTSDIR
 
 export NXF_HOME="$OUTDIR/.nextflow"
+export NXF_SINGULARITY_HOME_MOUNT=true
 
 printenv|grep NXF
 
