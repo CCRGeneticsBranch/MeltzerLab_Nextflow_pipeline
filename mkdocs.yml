@@ -6,7 +6,7 @@ site_description: >-
 # Repository
 repo_name: CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline
 repo_url: https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline
-edit_uri: https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline/edit/main/docs/
+edit_uri: https://github.com/CCRGeneticsBranch/MeltzerLab_Nextflow_pipeline/docs/
 
 # Copyright
 copyright: Copyright &copy; 2023 CCR Genetics Branch

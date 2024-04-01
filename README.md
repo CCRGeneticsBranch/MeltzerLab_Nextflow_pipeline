@@ -1,74 +1,41 @@
-# Nextflow Template <!-- replace this header with TOOL_NAME -->
+# Meltzerlab Data Processing Pipeline
 
-CCBR template for creating Nextflow pipelines <!-- replace this line with the description of TOOL_NAME -->
+This repository contains a Nextflow based DNA/RNA data processing pipeline built specifically for Meltzer lab. This pipeline is built to run variant filtering and extensive QC on a sequencing run. The pipeline supports processing data from multiple references. We currently support
 
-## Using this template
+| Genome | Version          |
+|--------|------------------|
+| Human  | hg19, hg38       |
+| Mouse  | mm10, mm39       |
+| Dog    | canFam3, canFam6 |
 
-1. Create a new repository from this template using either of these options:
-   - [**The GitHub web interface**](https://github.com/CCBR/CCBR_NextflowTemplate):
-     Click "Use this template" and "Create a new repository", then choose an owner (CCBR) and the repository name as the new tool's name.
-   - [**The GitHub command line interface**](https://cli.github.com/):
-     ```sh
-     gh repo create CCBR/TOOL_NAME \
-        --description "One-line description of your tool" \
-        --public \
-        --template CCBR/CCBR_NextflowTemplate \
-        --confirm
-     ```
-1. Read and follow the contributing guidelines in `docs/CONTRIBUTING.md`.
-   Be sure to [install `pre-commit` and its hooks](docs/CONTRIBUTING.md#use-pre-commit-hooks) before making any commits.
-1. Change all instances of `TOOL_NAME` and `tool_name` throughout the repo with the actual tool name. Replace `TOOL_NAME` with the all-caps version and `tool_name` with the lowercase version. Places include:
+This pipeline is developed and deployed solely on NIH Biowulf.
 
-   <!-- `grep -irl tool_name . | sort | sed "s|\./||"` -->
+# Biowulf
 
-   ```
-   .github/ISSUE_TEMPLATE/bug_report.md
-   .github/ISSUE_TEMPLATE/config.yml
-   CITATION.cff
-   README.md
-   docs/CHANGELOG.md
-   main.nf
-   mkdocs.yml
-   nextflow.config
-   pyproject.toml
-   src/__main__.py
-   ```
+This pipeline is hosted under /data/GBNCI directory. You'll need to start an interactive session inorder to launch the pipeline.
 
-1. Edit `pyproject.toml` and `nextflow.config` with correct metadata for your tool. You will likely need to change:
-   - author names and emails
-   - dependencies
-   - project URLs
-1. Write your nextflow workflow.
-1. Write your documentation in `docs/` and enable GitHub Pages.
-   - In settings, go to General > Pages and select the `gh-pages` branch.
-     mkdocs will build your site under the `gh-pages` branch, and GitHub Pages will make it available at `https://ccbr.github.io/TOOL_NAME`.
-1. Edit the README:
-   1. Change the title and description.
-   1. Delete the section [Using this template](README.md##using-this-template).
-
-You can look for instances of `TOOL_NAME` in case you missed any with grep:
-
-```sh
-grep -ir "TOOL_NAME" .
-```
-
-For a work-in-progress example of this template in action, see the [CHAMPAGNE](https://github.com/CCBR/CHAMPAGNE) repo.
+` sinteractive --mem=30g --cpus-per-task=4 `
 
 ## Usage
 
-Install the tool in edit mode:
+```
+Usage: /data/GBNCI/MeltzerLab_Nextflow_pipeline/nf.sh  <samplesheet> 
+   
+This script requires one positional argument:
+<samplesheet>: Provide the full path to the samplesheet in a Meltzer lab accepted format.
+eg: /data/GBNCI/MeltzerLab_Nextflow_pipeline/nf.sh /data/GBNCI/DATA/VG_test/samplesheet.tsv 
 
-```sh
-pip3 install -e .
 ```
 
-Run the example
+## Input Samplesheet
 
-```sh
-TOOL_NAME run --input "Hello world"
-```
+Input file is a tab seperated samplesheet file from Meltzer lab. However the pipeline can be launched as long as these columns are present.
+Here is an example of the expected format.
 
-![dag](assets/dag.png)
+| flowcell | library       | sample_type | genome | read1                   | read2                    | capture_targets             |
+|----------|---------------|-------------|--------|-------------------------|--------------------------|-----------------------------|
+| AAZ123   | L080123_RNA   | Total RNA   | hg19   | L080123_RNA_R1.fastq.gz | L080123_RNA_R1.fastq.gz | APC_TP53_BAC_KlenowBait   |
+
 
 ## Help & Contributing
 
