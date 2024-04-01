@@ -75,13 +75,13 @@ GATK_ApplyBQSR(
      .combine(aligner)
 )
 
-/*
+
 Bam2tdf(
      GATK_ApplyBQSR.out
      .combine(ref_folder)
      .combine(aligner)
 )
-*/
+
 
 Flagstat(
      GATK_ApplyBQSR.out

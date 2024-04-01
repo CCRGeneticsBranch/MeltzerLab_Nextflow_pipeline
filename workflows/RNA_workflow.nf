@@ -16,6 +16,7 @@ include {Fastq_screen
         Kraken2
         Krona
         Multiqc
+        Bam2tdf
         RNAseQC
         Strandedness
         CollectRnaSeqMetrics} from '../modules/local/qc.nf'
@@ -120,6 +121,12 @@ Applybqsr_input = GATK_SplitNCigarReads.out.join(GATK_BaseRecalibrator.out,by:[0
 
 GATK_ApplyBQSR(
      Applybqsr_input
+     .combine(ref_folder)
+     .combine(RNA_aligner)
+)
+
+Bam2tdf(
+     GATK_ApplyBQSR.out
      .combine(ref_folder)
      .combine(RNA_aligner)
 )
