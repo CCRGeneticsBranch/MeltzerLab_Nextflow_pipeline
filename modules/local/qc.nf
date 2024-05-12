@@ -110,7 +110,7 @@ process NGSCheckMate {
     """
 
     output:
-    path("NGSCheckMate.pdf") , emit : pdf
+    path("NGSCheckMate.pdf") , emit : pdf, optional: true
     path("NGSCheckMate_all.txt"), emit : png
 
 
@@ -124,10 +124,10 @@ process NGSCheckMate {
     mv *vaf \$TMP
 
     python \$NCM_HOME/vaf_ncm.py -I \$TMP \
-            -O \$TMP \
+            -O . \
             -N NGSCheckMate
-    cp \$TMP/NGSCheckMate.pdf .
-    echo -e "Sample1\tmatched/unmatched\tSample2\tCorrelation\tDepth"| cat - \$TMP/NGSCheckMate_all.txt > NGSCheckMate_all.txt
+
+    sed -i '1iSample1\tmatched/unmatched\tSample2\tCorrelation\tDepth' NGSCheckMate_all.txt
 
     """
 }
